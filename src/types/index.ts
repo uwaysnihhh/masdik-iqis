@@ -9,8 +9,9 @@ export interface Event {
   id: string;
   title: string;
   date: Date;
+  time?: string;
   description: string;
-  type: 'pengajian' | 'shalat' | 'acara' | 'reservasi';
+  type: 'kajian' | 'pengajian' | 'shalat' | 'acara' | 'sosial' | 'reservasi';
 }
 
 export interface BookingRequest {

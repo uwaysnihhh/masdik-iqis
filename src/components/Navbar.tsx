@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Moon, Sun } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import logoMasjid from "@/assets/logo-masjid.png";
 
 const navLinks = [
   { name: "Beranda", href: "/" },
@@ -22,12 +23,14 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 gradient-islamic rounded-xl flex items-center justify-center shadow-islamic">
-              <span className="text-primary-foreground font-arabic text-lg lg:text-xl font-bold">م</span>
-            </div>
+            <img 
+              src={logoMasjid} 
+              alt="Logo Masjid Pendidikan Ibnul Qayyim" 
+              className="w-10 h-10 lg:w-12 lg:h-12 object-contain"
+            />
             <div className="hidden sm:block">
               <h1 className="font-bold text-foreground text-sm lg:text-base">MASDIK IQIS</h1>
-              <p className="text-xs text-muted-foreground">Masjid Pendidikan Ibnul Qayyim</p>
+              <p className="text-xs text-muted-foreground">Masjid Pendidikan Ibnul Qayyim, Makassar</p>
             </div>
           </Link>
 
