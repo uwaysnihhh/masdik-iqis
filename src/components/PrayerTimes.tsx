@@ -10,28 +10,27 @@ const prayerData: PrayerTime[] = [
   { name: "Isya", nameArabic: "العشاء", time: "19:15" },
 ];
 
-function getCurrentPrayer(currentTime: string): string {
-  const current = currentTime.replace(":", "");
-  const times = prayerData.map((p) => ({
-    name: p.name,
-    value: parseInt(p.time.replace(":", "")),
-  }));
+function getActivePrayer(currentTime: string): string | null {
+  const [hours, minutes] = currentTime.split(":").map(Number);
+  const currentMinutes = hours * 60 + minutes;
 
-  const currentNum = parseInt(current);
+  for (let i = 0; i < prayerData.length; i++) {
+    const [prayerHours, prayerMinutes] = prayerData[i].time.split(":").map(Number);
+    const prayerStartMinutes = prayerHours * 60 + prayerMinutes;
+    const prayerEndMinutes = prayerStartMinutes + 10; // Active for 10 minutes
 
-  for (let i = times.length - 1; i >= 0; i--) {
-    if (currentNum >= times[i].value) {
-      return times[i].name;
+    if (currentMinutes >= prayerStartMinutes && currentMinutes < prayerEndMinutes) {
+      return prayerData[i].name;
     }
   }
 
-  return times[times.length - 1].name;
+  return null;
 }
 
 export function PrayerTimes() {
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
-  const [activePrayer, setActivePrayer] = useState("");
+  const [activePrayer, setActivePrayer] = useState<string | null>(null);
 
   useEffect(() => {
     const updateTime = () => {
@@ -51,7 +50,7 @@ export function PrayerTimes() {
 
       setCurrentTime(timeStr);
       setCurrentDate(dateStr);
-      setActivePrayer(getCurrentPrayer(timeStr));
+      setActivePrayer(getActivePrayer(timeStr));
     };
 
     updateTime();
@@ -101,14 +100,16 @@ export function PrayerTimes() {
         </div>
 
         {/* Current Prayer Indicator */}
-        <div className="mt-6 text-center">
-          <div className="inline-flex items-center gap-2 bg-primary-foreground/20 backdrop-blur-sm px-4 py-2 rounded-full">
-            <span className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-            <span className="text-primary-foreground text-sm">
-              Waktu Shalat <span className="font-bold">{activePrayer}</span> sedang berlangsung
-            </span>
+        {activePrayer && (
+          <div className="mt-6 text-center">
+            <div className="inline-flex items-center gap-2 bg-primary-foreground/20 backdrop-blur-sm px-4 py-2 rounded-full">
+              <span className="w-2 h-2 bg-accent rounded-full animate-pulse" />
+              <span className="text-primary-foreground text-sm">
+                Waktu Shalat <span className="font-bold">{activePrayer}</span> sedang berlangsung
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ export function DKMStructure() {
           Struktur Organisasi DKM
         </h2>
         <p className="text-muted-foreground">
-          Masjid Pendidikan Ibnul Qayyim (MASDIK IQIS)
+          Masjid Pendidikan Ibnul Qayyim Makassar (MASDIK IQIS)
         </p>
         <div className="h-1 w-24 mx-auto gradient-gold rounded-full mt-4" />
       </div>

@@ -161,7 +161,7 @@ export default function Admin() {
               <div className="h-8 w-px bg-border" />
               <div>
                 <h1 className="font-bold text-foreground">Admin Panel</h1>
-                <p className="text-xs text-muted-foreground">MASDIK IQIS</p>
+                <p className="text-xs text-muted-foreground">MASDIK IQIS Makassar</p>
               </div>
             </div>
             <div className="flex items-center gap-2">

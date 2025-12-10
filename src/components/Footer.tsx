@@ -1,4 +1,5 @@
-import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { MapPin, Phone, Mail } from "lucide-react";
+import logoMasjid from "@/assets/logo-masjid.png";
 
 export function Footer() {
   return (
@@ -8,12 +9,14 @@ export function Footer() {
           {/* Logo & Description */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 gradient-gold rounded-xl flex items-center justify-center">
-                <span className="text-foreground font-arabic text-xl font-bold">م</span>
-              </div>
+              <img 
+                src={logoMasjid} 
+                alt="Logo MASDIK IQIS" 
+                className="w-12 h-12 object-contain"
+              />
               <div>
                 <h3 className="font-bold text-lg">MASDIK IQIS</h3>
-                <p className="text-sm text-background/70">Masjid Pendidikan Ibnul Qayyim</p>
+                <p className="text-sm text-background/70">Masjid Pendidikan Ibnul Qayyim Makassar</p>
               </div>
             </div>
             <p className="text-background/70 text-sm leading-relaxed">
@@ -28,7 +31,7 @@ export function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start gap-3 text-sm text-background/70">
                 <MapPin className="w-5 h-5 text-gold shrink-0 mt-0.5" />
-                <span>Jl. Pendidikan No. 123, Kota Bandung, Jawa Barat 40123</span>
+                <span>Jl. Taman Bunga Sudiang No.2, Laikang, Biringkanaya, Makassar City, South Sulawesi 90242</span>
               </li>
               <li className="flex items-center gap-3 text-sm text-background/70">
                 <Phone className="w-5 h-5 text-gold shrink-0" />
@@ -70,7 +73,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-background/10 mt-8 pt-8 text-center text-sm text-background/50">
-          <p>© 2024 Masjid Pendidikan Ibnul Qayyim. Hak Cipta Dilindungi.</p>
+          <p>© 2024 Masjid Pendidikan Ibnul Qayyim Makassar. Hak Cipta Dilindungi.</p>
         </div>
       </div>
     </footer>

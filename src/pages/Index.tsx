@@ -73,7 +73,7 @@ export default function Index() {
             </h2>
             <div className="h-1 w-24 mx-auto gradient-gold rounded-full mb-6" />
             <p className="text-muted-foreground text-lg leading-relaxed">
-              Masjid Pendidikan Ibnul Qayyim (MASDIK IQIS) adalah pusat
+              Masjid Pendidikan Ibnul Qayyim Makassar (MASDIK IQIS) adalah pusat
               pendidikan Islam dan kegiatan umat yang berlokasi di jantung
               kota. Kami berkomitmen untuk menyediakan tempat ibadah yang
               nyaman, program pendidikan yang berkualitas, dan kegiatan sosial
