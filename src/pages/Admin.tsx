@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import {
   Plus,
   Search,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -99,6 +100,20 @@ function formatCurrency(amount: number): string {
 export default function Admin() {
   const [bookings, setBookings] = useState<Booking[]>(bookingRequests);
   const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const isLoggedIn = sessionStorage.getItem("isAdminLoggedIn");
+    if (!isLoggedIn) {
+      navigate("/admin-login");
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("isAdminLoggedIn");
+    navigate("/admin-login");
+    toast({ title: "Logout Berhasil" });
+  };
 
   const handleApprove = (id: string) => {
     setBookings(
@@ -160,7 +175,7 @@ export default function Admin() {
               </Link>
               <div className="h-8 w-px bg-border" />
               <div>
-                <h1 className="font-bold text-foreground">Admin Panel</h1>
+                <h1 className="font-bold text-foreground">Admin</h1>
                 <p className="text-xs text-muted-foreground">MASDIK IQIS Makassar</p>
               </div>
             </div>
@@ -174,6 +189,10 @@ export default function Admin() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
