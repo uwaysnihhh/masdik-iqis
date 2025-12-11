@@ -26,11 +26,11 @@ export function Navbar() {
             <img 
               src={logoMasjid} 
               alt="Logo Masjid Pendidikan Ibnul Qayyim" 
-              className="w-10 h-10 lg:w-12 lg:h-12 object-contain"
+              className="w-10 h-10 lg:w-12 lg:h-12 object-contain border-2 border-primary rounded-lg p-0.5"
             />
             <div className="hidden sm:block">
               <h1 className="font-bold text-foreground text-sm lg:text-base">MASDIK IQIS</h1>
-              <p className="text-xs text-muted-foreground">Masjid Pendidikan Ibnul Qayyim, Makassar</p>
+              <p className="text-xs text-muted-foreground">Masjid Pendidikan Ibnul Qayyim Makassar</p>
             </div>
           </Link>
 
@@ -54,9 +54,9 @@ export function Navbar() {
 
           {/* Admin Button */}
           <div className="hidden lg:block">
-            <Link to="/admin">
+            <Link to="/admin-login">
               <Button variant="outline" size="sm">
-                Admin Panel
+                Admin
               </Button>
             </Link>
           </div>
@@ -89,9 +89,9 @@ export function Navbar() {
                   {link.name}
                 </Link>
               ))}
-              <Link to="/admin" onClick={() => setIsOpen(false)}>
+              <Link to="/admin-login" onClick={() => setIsOpen(false)}>
                 <Button variant="outline" className="w-full mt-2">
-                  Admin Panel
+                  Admin
                 </Button>
               </Link>
             </div>

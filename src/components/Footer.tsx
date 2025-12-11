@@ -12,7 +12,7 @@ export function Footer() {
               <img 
                 src={logoMasjid} 
                 alt="Logo MASDIK IQIS" 
-                className="w-12 h-12 object-contain"
+                className="w-12 h-12 object-contain border-2 border-background/30 rounded-lg p-0.5"
               />
               <div>
                 <h3 className="font-bold text-lg">MASDIK IQIS</h3>
@@ -72,7 +72,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-background/10 mt-8 pt-8 text-center text-sm text-background/50">
+        <div className="border-t border-background/10 mt-8 pt-8 pb-4 text-center text-sm text-background/50">
           <p>© 2024 Masjid Pendidikan Ibnul Qayyim Makassar. Hak Cipta Dilindungi.</p>
         </div>
       </div>

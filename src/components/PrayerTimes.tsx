@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { PrayerTime } from "@/types";
 
-const prayerData: PrayerTime[] = [
+const defaultPrayerData: PrayerTime[] = [
   { name: "Subuh", nameArabic: "الفجر", time: "04:30" },
   { name: "Dzuhur", nameArabic: "الظهر", time: "12:00" },
   { name: "Ashar", nameArabic: "العصر", time: "15:15" },
@@ -10,14 +10,14 @@ const prayerData: PrayerTime[] = [
   { name: "Isya", nameArabic: "العشاء", time: "19:15" },
 ];
 
-function getActivePrayer(currentTime: string): string | null {
+function getActivePrayer(currentTime: string, prayerData: PrayerTime[]): string | null {
   const [hours, minutes] = currentTime.split(":").map(Number);
   const currentMinutes = hours * 60 + minutes;
 
   for (let i = 0; i < prayerData.length; i++) {
     const [prayerHours, prayerMinutes] = prayerData[i].time.split(":").map(Number);
     const prayerStartMinutes = prayerHours * 60 + prayerMinutes;
-    const prayerEndMinutes = prayerStartMinutes + 10; // Active for 10 minutes
+    const prayerEndMinutes = prayerStartMinutes + 20; // Active for 20 minutes
 
     if (currentMinutes >= prayerStartMinutes && currentMinutes < prayerEndMinutes) {
       return prayerData[i].name;
@@ -31,6 +31,40 @@ export function PrayerTimes() {
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
   const [activePrayer, setActivePrayer] = useState<string | null>(null);
+  const [prayerData, setPrayerData] = useState<PrayerTime[]>(defaultPrayerData);
+
+  // Fetch prayer times for Makassar
+  useEffect(() => {
+    const fetchPrayerTimes = async () => {
+      try {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        const day = today.getDate();
+        
+        // Makassar coordinates: -5.1477, 119.4327
+        const response = await fetch(
+          `https://api.aladhan.com/v1/timings/${day}-${month}-${year}?latitude=-5.1477&longitude=119.4327&method=20`
+        );
+        const data = await response.json();
+        
+        if (data.code === 200) {
+          const timings = data.data.timings;
+          setPrayerData([
+            { name: "Subuh", nameArabic: "الفجر", time: timings.Fajr },
+            { name: "Dzuhur", nameArabic: "الظهر", time: timings.Dhuhr },
+            { name: "Ashar", nameArabic: "العصر", time: timings.Asr },
+            { name: "Maghrib", nameArabic: "المغرب", time: timings.Maghrib },
+            { name: "Isya", nameArabic: "العشاء", time: timings.Isha },
+          ]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch prayer times:", error);
+      }
+    };
+
+    fetchPrayerTimes();
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -50,13 +84,13 @@ export function PrayerTimes() {
 
       setCurrentTime(timeStr);
       setCurrentDate(dateStr);
-      setActivePrayer(getActivePrayer(timeStr));
+      setActivePrayer(getActivePrayer(timeStr, prayerData));
     };
 
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [prayerData]);
 
   return (
     <div className="relative overflow-hidden rounded-2xl gradient-islamic p-6 lg:p-8 shadow-islamic">

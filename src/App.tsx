@@ -9,6 +9,7 @@ import Layanan from "./pages/Layanan";
 import Struktur from "./pages/Struktur";
 import Saldo from "./pages/Saldo";
 import Admin from "./pages/Admin";
+import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/struktur" element={<Struktur />} />
           <Route path="/saldo" element={<Saldo />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
