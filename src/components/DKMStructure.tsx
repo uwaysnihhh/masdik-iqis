@@ -4,7 +4,7 @@ import type { DKMMember } from "@/types";
 
 const dkmMembers: DKMMember[] = [
   // Pembina & Penasihat
-  { id: "1", name: "drh. Islan Arvan Nurgas, M.Si.", position: "Ketua YPI Ibnul Qayyim Makassar", role: "pembina" },
+  { id: "1", name: "drh. Ilsan Arvan Nurgas, M.Si.", position: "Ketua YPI Ibnul Qayyim Makassar", role: "pembina" },
   { id: "2", name: "Ustadz Budi Hariyanto, Lc., M.Pd.", position: "Dewan Pembina YPI Ibnul Qayyim Makassar", role: "pembina" },
   // Ketua
   { id: "3", name: "Muflih Habibullah, S.Pd.", position: "Ketua", role: "ketua" },
