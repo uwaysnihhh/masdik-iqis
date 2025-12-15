@@ -16,17 +16,18 @@ const dkmMembers: DKMMember[] = [
   { id: "6", name: "Ustadz Mustaqiem Musytari, S.Pd., M.Pd.", position: "Bidang Keagamaan & Pembinaan", role: "bidang" },
   { id: "7", name: "Ustadz Ali Amran, S.H.I., M.H.", position: "Bidang Keagamaan & Pembinaan", role: "bidang" },
   { id: "8", name: "Ustadz Muhammad Yusuf, S.Pd.", position: "Bidang Keagamaan & Pembinaan", role: "bidang" },
-  // Bidang Humas
-  { id: "9", name: "Mashuri, S.Pd.", position: "Bidang Humas", role: "bidang" },
-  { id: "10", name: "Hammam Abdul Aziz", position: "Bidang Humas", role: "bidang" },
+  // Bidang Humas & Media
+  { id: "9", name: "Mashuri, S.Pd.", position: "Bidang Humas & Media", role: "bidang" },
+  { id: "10", name: "Khalid Fikri", position: "Bidang Humas & Media", role: "bidang" },
+  { id: "11", name: "Hammam Abdul Aziz", position: "Bidang Humas & Media", role: "bidang" },
   // Bidang Sarana & Prasarana
   { id: "11", name: "Adnan Pabean, S.Pd.", position: "Bidang Sarana & Prasarana", role: "bidang" },
   // Bidang Perawatan & Kebersihan
   { id: "12", name: "Suhardi", position: "Bidang Perawatan & Kebersihan", role: "bidang" },
-  // Marbot
-  { id: "13", name: "Rizki Ridho", position: "Marbot", role: "marbot" },
-  { id: "14", name: "Suhaib", position: "Marbot", role: "marbot" },
-  { id: "15", name: "Ali Abdurrozzaq", position: "Marbot", role: "marbot" },
+  // Remaja Masjid
+  { id: "14", name: "Rizki Ridho", position: "Remaja Masjid", role: "remaja" },
+  { id: "15", name: "Suhaib", position: "Remaja Masjid", role: "remaja" },
+  { id: "16", name: "Ali Abdurrozzaq", position: "Remaja Masjid", role: "remaja" },
 ];
 
 export function DKMStructure() {
@@ -35,10 +36,10 @@ export function DKMStructure() {
   const sekretaris = dkmMembers.find((m) => m.role === "sekretaris");
   const bendahara = dkmMembers.find((m) => m.role === "bendahara");
   const bidangKeagamaan = dkmMembers.filter((m) => m.position === "Bidang Keagamaan & Pembinaan");
-  const bidangHumas = dkmMembers.filter((m) => m.position === "Bidang Humas");
+  const bidangHumas = dkmMembers.filter((m) => m.position === "Bidang Humas & Media");
   const bidangSarana = dkmMembers.filter((m) => m.position === "Bidang Sarana & Prasarana");
   const bidangPerawatan = dkmMembers.filter((m) => m.position === "Bidang Perawatan & Kebersihan");
-  const marbot = dkmMembers.filter((m) => m.role === "marbot");
+  const remajaMasjid = dkmMembers.filter((m) => m.role === "remaja");
 
   return (
     <div className="space-y-8">
@@ -103,10 +104,10 @@ export function DKMStructure() {
           </div>
         </div>
 
-        {/* Bidang Humas */}
+        {/* Bidang Humas & Media */}
         <div className="space-y-3">
-          <h4 className="text-lg font-semibold text-center text-primary">Bidang Humas</h4>
-          <div className="flex justify-center gap-4 flex-wrap">
+          <h4 className="text-lg font-semibold text-center text-primary">Bidang Humas & Media</h4>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {bidangHumas.map((member) => (
               <MemberCard key={member.id} member={member} variant="bidang" />
             ))}
@@ -139,12 +140,12 @@ export function DKMStructure() {
         <div className="w-0.5 h-8 bg-border" />
       </div>
 
-      {/* Marbot */}
+      {/* Remaja Masjid */}
       <div className="space-y-3">
-        <h4 className="text-lg font-semibold text-center text-foreground">Marbot</h4>
+        <h4 className="text-lg font-semibold text-center text-foreground">Remaja Masjid</h4>
         <div className="flex justify-center gap-4 flex-wrap">
-          {marbot.map((member) => (
-            <MemberCard key={member.id} member={member} variant="marbot" />
+          {remajaMasjid.map((member) => (
+            <MemberCard key={member.id} member={member} variant="remaja" />
           ))}
         </div>
       </div>
@@ -157,14 +158,14 @@ function MemberCard({
   variant = "default",
 }: {
   member: DKMMember;
-  variant?: "pembina" | "ketua" | "sekben" | "bidang" | "marbot" | "default";
+  variant?: "pembina" | "ketua" | "sekben" | "bidang" | "remaja" | "default";
 }) {
   const variantStyles = {
     pembina: "bg-primary/5 border-2 border-primary/20",
     ketua: "shadow-islamic gradient-islamic",
     sekben: "bg-accent/10 border-2 border-accent/30",
     bidang: "bg-card shadow-lg hover:shadow-islamic",
-    marbot: "bg-muted/50",
+    remaja: "bg-muted/50",
     default: "bg-card shadow-lg",
   };
 
@@ -175,7 +176,7 @@ function MemberCard({
       className={`
         border-0 transition-all duration-300 hover:-translate-y-1 
         ${variantStyles[variant]}
-        ${variant === "bidang" || variant === "marbot" ? "w-full sm:w-auto sm:min-w-[200px]" : ""}
+        ${variant === "bidang" || variant === "remaja" ? "w-full sm:w-auto sm:min-w-[200px]" : ""}
       `}
     >
       <CardContent className={`p-6 text-center ${isKetua ? "text-primary-foreground" : ""}`}>
