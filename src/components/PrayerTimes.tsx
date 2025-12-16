@@ -76,12 +76,14 @@ export function PrayerTimes() {
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      const timeStr = now.toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      });
+      // TESTING: Hardcoded time for demonstration - REMOVE THIS AFTER TESTING
+      const timeStr = "15:25:00";
+      // const timeStr = now.toLocaleTimeString("id-ID", {
+      //   hour: "2-digit",
+      //   minute: "2-digit",
+      //   second: "2-digit",
+      //   hour12: false,
+      // });
       const dateStr = now.toLocaleDateString("id-ID", {
         weekday: "long",
         year: "numeric",
