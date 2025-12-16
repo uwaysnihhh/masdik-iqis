@@ -10,13 +10,20 @@ const defaultPrayerData: PrayerTime[] = [
   { name: "Isya", nameArabic: "العشاء", time: "19:15" },
 ];
 
+function parseTimeToMinutes(timeStr: string): number {
+  // Remove any extra text like "(WITA)" and parse time
+  const cleanTime = timeStr.replace(/\s*\([^)]*\)/g, "").trim();
+  const parts = cleanTime.split(":");
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+  return hours * 60 + minutes;
+}
+
 function getActivePrayer(currentTime: string, prayerData: PrayerTime[]): string | null {
-  const [hours, minutes] = currentTime.split(":").map(Number);
-  const currentMinutes = hours * 60 + minutes;
+  const currentMinutes = parseTimeToMinutes(currentTime);
 
   for (let i = 0; i < prayerData.length; i++) {
-    const [prayerHours, prayerMinutes] = prayerData[i].time.split(":").map(Number);
-    const prayerStartMinutes = prayerHours * 60 + prayerMinutes;
+    const prayerStartMinutes = parseTimeToMinutes(prayerData[i].time);
     const prayerEndMinutes = prayerStartMinutes + 20; // Active for 20 minutes
 
     if (currentMinutes >= prayerStartMinutes && currentMinutes < prayerEndMinutes) {
