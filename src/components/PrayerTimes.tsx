@@ -11,11 +11,13 @@ const defaultPrayerData: PrayerTime[] = [
 ];
 
 function parseTimeToMinutes(timeStr: string): number {
-  // Remove any extra text like "(WITA)" and parse time
+  // Remove any extra text like "(WITA)" and parse time.
+  // Supports separators like ":" or "." (e.g. "08.52.13" or "08:52:13").
   const cleanTime = timeStr.replace(/\s*\([^)]*\)/g, "").trim();
-  const parts = cleanTime.split(":");
-  const hours = parseInt(parts[0], 10);
-  const minutes = parseInt(parts[1], 10);
+  const match = cleanTime.match(/(\d{1,2})\D(\d{2})/);
+  if (!match) return 0;
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
   return hours * 60 + minutes;
 }
 
@@ -76,18 +78,24 @@ export function PrayerTimes() {
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      const timeStr = now.toLocaleTimeString("id-ID", {
+
+      // Use Makassar time to match fetched prayer times
+      const timeStr = new Intl.DateTimeFormat("id-ID", {
+        timeZone: "Asia/Makassar",
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
         hour12: false,
-      });
-      const dateStr = now.toLocaleDateString("id-ID", {
+      }).format(now);
+
+      const dateStr = new Intl.DateTimeFormat("id-ID", {
+        timeZone: "Asia/Makassar",
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric",
-      });
+      }).format(now);
+
 
       setCurrentTime(timeStr);
       setCurrentDate(dateStr);
