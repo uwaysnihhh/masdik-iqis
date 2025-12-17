@@ -57,7 +57,7 @@ export default function AdminLogin() {
 
         <Card className="border-0 shadow-islamic">
           <CardHeader>
-            <CardTitle className="text-center text-lg">Masuk ke Admin Panel</CardTitle>
+            <CardTitle className="text-center text-lg">Masuk ke Admin</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -106,7 +106,7 @@ export default function AdminLogin() {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          © 2024 MASDIK IQIS Makassar
+          © 2025 Masjid Pendidikan Ibnul Qayyim Makassar
         </p>
       </div>
     </div>

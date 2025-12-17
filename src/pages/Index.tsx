@@ -44,7 +44,7 @@ export default function Index() {
               <QuickLink
                 to="/layanan"
                 icon={FileText}
-                title="Reservasi"
+                title="Layanan"
                 description="Ajukan penggunaan masjid"
               />
               <QuickLink
