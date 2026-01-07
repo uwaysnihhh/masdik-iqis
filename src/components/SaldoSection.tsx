@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, QrCode } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, QrCode, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import qrisImage from "@/assets/qris-donasi.jpg";
 
 const saldoData = {
   total: 45750000,
@@ -75,32 +76,30 @@ export function SaldoSection() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <QrCode className="w-5 h-5 text-primary" />
-              Donasi Online
+              Infaq
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
             <div className="bg-card p-4 rounded-2xl shadow-lg border border-border">
-              <div className="w-48 h-48 bg-muted rounded-xl flex items-center justify-center">
-                {/* QR Code Placeholder */}
-                <div className="grid grid-cols-5 gap-1">
-                  {Array.from({ length: 25 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "w-6 h-6 rounded-sm",
-                        Math.random() > 0.5 ? "bg-foreground" : "bg-transparent"
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
+              <img 
+                src={qrisImage} 
+                alt="QRIS Masjid Pendidikan Ibnul Qayyim" 
+                className="w-48 h-auto rounded-xl"
+              />
             </div>
             <p className="text-sm text-muted-foreground mt-4 text-center">
-              Scan QR code untuk berdonasi
+              Scan QR code untuk berinfaq
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Bank Syariah Indonesia (BSI) - 1234567890
+              Bank Syariah Indonesia (BSI) - 7301136287
             </p>
+            <p className="text-xs text-muted-foreground">
+              a.n. Msjd Pendidikan Ibnul Qayyim
+            </p>
+            <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+              <Phone className="w-3 h-3" />
+              <span>+62 812-4429-4529</span>
+            </div>
           </CardContent>
         </Card>
 

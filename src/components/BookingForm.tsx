@@ -7,16 +7,28 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Send, CheckCircle } from "lucide-react";
+import { CalendarIcon, Send, CheckCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-const bookedDates = [
-  new Date(2024, 11, 15),
-  new Date(2024, 11, 20),
-  new Date(2024, 11, 25),
+// Tanggal dengan waktu yang sudah dipesan (format: "YYYY-MM-DD-HH:MM")
+const bookedSlots = [
+  { date: new Date(2024, 11, 15), time: "08:00" },
+  { date: new Date(2024, 11, 15), time: "10:00" },
+  { date: new Date(2024, 11, 20), time: "08:00" },
+  { date: new Date(2024, 11, 20), time: "14:00" },
+  { date: new Date(2024, 11, 20), time: "19:00" },
+  { date: new Date(2024, 11, 25), time: "08:00" },
+];
+
+const timeSlots = [
+  { value: "08:00", label: "08:00 - 10:00" },
+  { value: "10:00", label: "10:00 - 12:00" },
+  { value: "14:00", label: "14:00 - 16:00" },
+  { value: "16:00", label: "16:00 - 18:00" },
+  { value: "19:00", label: "19:00 - 21:00" },
 ];
 
 const activityTypes = [
@@ -30,6 +42,7 @@ const activityTypes = [
 
 export function BookingForm() {
   const [date, setDate] = useState<Date>();
+  const [time, setTime] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -39,13 +52,34 @@ export function BookingForm() {
     description: "",
   });
 
-  const isDateBooked = (day: Date) =>
-    bookedDates.some((booked) => booked.toDateString() === day.toDateString());
+  // Cek slot waktu yang tersedia untuk tanggal tertentu
+  const getAvailableSlots = (selectedDate: Date) => {
+    const bookedTimes = bookedSlots
+      .filter(slot => slot.date.toDateString() === selectedDate.toDateString())
+      .map(slot => slot.time);
+    return timeSlots.filter(slot => !bookedTimes.includes(slot.value));
+  };
+
+  // Cek apakah tanggal memiliki slot tersedia
+  const hasAvailableSlots = (day: Date) => {
+    const bookedTimes = bookedSlots
+      .filter(slot => slot.date.toDateString() === day.toDateString())
+      .map(slot => slot.time);
+    return bookedTimes.length < timeSlots.length;
+  };
+
+  // Cek apakah tanggal fully booked
+  const isFullyBooked = (day: Date) => {
+    const bookedTimes = bookedSlots
+      .filter(slot => slot.date.toDateString() === day.toDateString())
+      .map(slot => slot.time);
+    return bookedTimes.length >= timeSlots.length;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.phone || !formData.activity || !date) {
+    if (!formData.name || !formData.phone || !formData.activity || !date || !time) {
       toast({
         title: "Form Tidak Lengkap",
         description: "Mohon lengkapi semua field yang diperlukan",
@@ -175,24 +209,38 @@ export function BookingForm() {
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={setDate}
+                    onSelect={(newDate) => {
+                      setDate(newDate);
+                      setTime(""); // Reset waktu saat tanggal berubah
+                    }}
                     disabled={(day) =>
-                      day < new Date() || isDateBooked(day)
+                      day < new Date() || isFullyBooked(day)
                     }
                     modifiers={{
-                      booked: bookedDates,
+                      partiallyBooked: (day) => {
+                        const bookedTimes = bookedSlots
+                          .filter(slot => slot.date.toDateString() === day.toDateString())
+                          .map(slot => slot.time);
+                        return bookedTimes.length > 0 && bookedTimes.length < timeSlots.length;
+                      },
+                      fullyBooked: (day) => isFullyBooked(day),
                     }}
                     modifiersClassNames={{
-                      booked: "bg-destructive/20 text-destructive line-through",
+                      partiallyBooked: "bg-amber-100 text-amber-800",
+                      fullyBooked: "bg-destructive/20 text-destructive line-through",
                     }}
                     className="pointer-events-auto"
                     initialFocus
                   />
-                  <div className="p-3 border-t border-border">
+                  <div className="p-3 border-t border-border space-y-2">
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <div className="w-3 h-3 bg-destructive/20 rounded" />
-                        <span>Tidak tersedia</span>
+                        <span>Penuh</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-amber-100 rounded" />
+                        <span>Tersedia waktu lain</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <div className="w-3 h-3 bg-primary rounded" />
@@ -203,6 +251,39 @@ export function BookingForm() {
                 </PopoverContent>
               </Popover>
             </div>
+          </div>
+
+          {/* Pilih Waktu */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Pilih Waktu *
+            </Label>
+            {date ? (
+              <>
+                <Select value={time} onValueChange={setTime}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih waktu kegiatan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAvailableSlots(date).map((slot) => (
+                      <SelectItem key={slot.value} value={slot.value}>
+                        {slot.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {getAvailableSlots(date).length < timeSlots.length && (
+                  <p className="text-xs text-amber-600">
+                    ⚠️ Beberapa waktu pada tanggal ini sudah dipesan
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+                Pilih tanggal terlebih dahulu untuk melihat waktu yang tersedia
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
