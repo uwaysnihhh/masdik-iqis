@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, QrCode, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, Wallet, QrCode, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import qrisImage from "@/assets/qris-donasi.jpg";
 
@@ -84,7 +85,7 @@ export function SaldoSection() {
               <img 
                 src={qrisImage} 
                 alt="QRIS Masjid Pendidikan Ibnul Qayyim" 
-                className="w-48 h-auto rounded-xl"
+                className="w-72 h-auto rounded-xl"
               />
             </div>
             <p className="text-sm text-muted-foreground mt-4 text-center">
@@ -96,10 +97,16 @@ export function SaldoSection() {
             <p className="text-xs text-muted-foreground">
               a.n. Msjd Pendidikan Ibnul Qayyim
             </p>
-            <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-              <Phone className="w-3 h-3" />
-              <span>+62 812-4429-4529</span>
-            </div>
+            <a 
+              href={qrisImage} 
+              download="QRIS-Masjid-Ibnul-Qayyim.jpg"
+              className="mt-4"
+            >
+              <Button variant="outline" size="sm" className="gap-2">
+                <Download className="w-4 h-4" />
+                Download QR Code
+              </Button>
+            </a>
           </CardContent>
         </Card>
 

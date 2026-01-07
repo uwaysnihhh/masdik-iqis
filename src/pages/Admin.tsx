@@ -246,6 +246,14 @@ export default function Admin() {
     toast({ title: "Kegiatan Ditambahkan" });
   };
 
+  const totalIncome = transactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalExpense = transactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
+
   const stats = [
     {
       title: "Total Saldo",
@@ -253,6 +261,20 @@ export default function Admin() {
       icon: Wallet,
       trend: "+12%",
       trendUp: true,
+    },
+    {
+      title: "Total Pemasukan",
+      value: formatCurrency(totalIncome),
+      icon: TrendingUp,
+      trend: "+25%",
+      trendUp: true,
+    },
+    {
+      title: "Total Pengeluaran",
+      value: formatCurrency(totalExpense),
+      icon: TrendingDown,
+      trend: "-8%",
+      trendUp: false,
     },
     {
       title: "Reservasi Pending",
@@ -266,13 +288,6 @@ export default function Admin() {
       value: events.length.toString(),
       icon: CalendarDays,
       trend: "+3",
-      trendUp: true,
-    },
-    {
-      title: "Total Donasi",
-      value: formatCurrency(17500000),
-      icon: TrendingUp,
-      trend: "+25%",
       trendUp: true,
     },
   ];
@@ -356,7 +371,7 @@ export default function Admin() {
 
       <main className="container mx-auto px-4 py-6 md:py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
           {stats.map((stat, index) => (
             <Card key={index} className="border-0 shadow-lg">
               <CardContent className="p-4 md:p-6">

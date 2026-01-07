@@ -261,18 +261,12 @@ export function BookingForm() {
             </Label>
             {date ? (
               <>
-                <Select value={time} onValueChange={setTime}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih waktu kegiatan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getAvailableSlots(date).map((slot) => (
-                      <SelectItem key={slot.value} value={slot.value}>
-                        {slot.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className="w-full"
+                />
                 {getAvailableSlots(date).length < timeSlots.length && (
                   <p className="text-xs text-amber-600">
                     ⚠️ Beberapa waktu pada tanggal ini sudah dipesan
