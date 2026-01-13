@@ -1,81 +1,124 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, MapPin } from "lucide-react";
+import { CalendarDays, Clock, MapPin, User } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import type { Event } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
-// Helper to get upcoming dates relative to current date
-const getUpcomingDate = (daysFromNow: number) => {
-  const date = new Date();
-  date.setDate(date.getDate() + daysFromNow);
-  return date;
-};
-
-const sampleEvents: Event[] = [
-  {
-    id: "1",
-    title: "Kajian Rutin Ahad Pagi",
-    date: getUpcomingDate(6),
-    time: "08:00 - 10:00",
-    description: "Kajian kitab bersama Ustadz Ahmad",
-    type: "kajian",
-  },
-  {
-    id: "2",
-    title: "Pengajian Ibu-ibu",
-    date: getUpcomingDate(9),
-    time: "09:00 - 11:00",
-    description: "Pengajian rutin ibu-ibu",
-    type: "pengajian",
-  },
-  {
-    id: "3",
-    title: "Buka Bersama Yatim",
-    date: getUpcomingDate(11),
-    time: "17:30 - 19:00",
-    description: "Buka puasa bersama anak yatim",
-    type: "sosial",
-  },
-  {
-    id: "4",
-    title: "Shalat Jumat",
-    date: getUpcomingDate(3),
-    time: "12:00 - 13:00",
-    description: "Khutbah oleh Ustadz Ridwan",
-    type: "shalat",
-  },
-];
+interface EventItem {
+  id: string;
+  title: string;
+  date: Date;
+  time: string;
+  description: string | null;
+  type: string;
+  source: "activity" | "reservation";
+  requester?: string;
+}
 
 const typeColors: Record<string, string> = {
   kajian: "border-primary text-primary bg-transparent",
   pengajian: "border-primary text-primary bg-transparent",
   shalat: "border-emerald-600 text-emerald-600 bg-transparent",
+  sholat: "border-emerald-600 text-emerald-600 bg-transparent",
   sosial: "border-gold text-gold bg-transparent",
   acara: "border-gold text-gold bg-transparent",
   reservasi: "border-secondary text-secondary-foreground bg-transparent",
-};
-
-// Get upcoming events sorted by date
-const getUpcomingEvents = () => {
-  const now = new Date();
-  return sampleEvents
-    .filter((event) => event.date >= now)
-    .sort((a, b) => a.date.getTime() - b.date.getTime());
+  pernikahan: "border-pink-500 text-pink-500 bg-transparent",
+  aqiqah: "border-amber-500 text-amber-500 bg-transparent",
+  tahlilan: "border-purple-500 text-purple-500 bg-transparent",
+  rapat: "border-blue-500 text-blue-500 bg-transparent",
+  lainnya: "border-gray-500 text-gray-500 bg-transparent",
 };
 
 export function EventCalendar() {
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const selectedDateEvents = sampleEvents.filter(
-    (event) =>
-      date && event.date.toDateString() === date.toDateString()
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setIsLoading(true);
+
+      // Fetch activities and approved reservations
+      const [activitiesRes, reservationsRes] = await Promise.all([
+        supabase
+          .from("activities")
+          .select("*")
+          .eq("is_active", true)
+          .order("event_date", { ascending: true }),
+        supabase
+          .from("reservations")
+          .select("*")
+          .eq("status", "approved")
+          .order("reservation_date", { ascending: true }),
+      ]);
+
+      const allEvents: EventItem[] = [];
+
+      // Add activities
+      if (activitiesRes.data) {
+        activitiesRes.data.forEach((activity) => {
+          const timeStr = activity.event_time
+            ? activity.event_end_time
+              ? `${activity.event_time} - ${activity.event_end_time}`
+              : activity.event_time
+            : "";
+
+          allEvents.push({
+            id: activity.id,
+            title: activity.title,
+            date: new Date(activity.event_date),
+            time: timeStr,
+            description: activity.description,
+            type: activity.type,
+            source: "activity",
+          });
+        });
+      }
+
+      // Add approved reservations
+      if (reservationsRes.data) {
+        reservationsRes.data.forEach((reservation) => {
+          const timeStr = reservation.reservation_time
+            ? reservation.reservation_end_time
+              ? `${reservation.reservation_time} - ${reservation.reservation_end_time}`
+              : reservation.reservation_time
+            : "";
+
+          allEvents.push({
+            id: reservation.id,
+            title: `Reservasi: ${reservation.activity_type.charAt(0).toUpperCase() + reservation.activity_type.slice(1)}`,
+            date: new Date(reservation.reservation_date),
+            time: timeStr,
+            description: reservation.description,
+            type: reservation.activity_type,
+            source: "reservation",
+            requester: reservation.name,
+          });
+        });
+      }
+
+      setEvents(allEvents);
+      setIsLoading(false);
+    };
+
+    fetchEvents();
+  }, []);
+
+  const selectedDateEvents = events.filter(
+    (event) => date && event.date.toDateString() === date.toDateString()
   );
 
-  const eventDates = sampleEvents.map((e) => e.date.toDateString());
-  const upcomingEvents = getUpcomingEvents();
+  const eventDates = events.map((e) => e.date.toDateString());
+
+  // Get upcoming events (future events only)
+  const upcomingEvents = events
+    .filter((event) => event.date >= new Date(new Date().setHours(0, 0, 0, 0)))
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .slice(0, 10);
 
   return (
     <div className="space-y-6">
@@ -88,18 +131,24 @@ export function EventCalendar() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              className="rounded-xl border-0 pointer-events-auto"
-              modifiers={{
-                event: (day) => eventDates.includes(day.toDateString()),
-              }}
-              modifiersClassNames={{
-                event: "bg-primary/20 text-primary font-bold",
-              }}
-            />
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                className="rounded-xl border-0 pointer-events-auto"
+                modifiers={{
+                  event: (day) => eventDates.includes(day.toDateString()),
+                }}
+                modifiersClassNames={{
+                  event: "bg-primary/20 text-primary font-bold",
+                }}
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -125,15 +174,36 @@ export function EventCalendar() {
                         <h4 className="font-semibold text-foreground mb-1">
                           {event.title}
                         </h4>
-                        <p className="text-sm text-muted-foreground">
-                          {event.description}
-                        </p>
+                        {event.description && (
+                          <p className="text-sm text-muted-foreground">
+                            {event.description}
+                          </p>
+                        )}
+                        {event.source === "reservation" && event.requester && (
+                          <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
+                            <User className="w-3 h-3" />
+                            <span>{event.requester}</span>
+                          </div>
+                        )}
                       </div>
-                      <Badge variant="outline" className={typeColors[event.type]}>
-                        {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
-                      </Badge>
+                      <div className="flex flex-col gap-1 items-end">
+                        <Badge variant="outline" className={typeColors[event.type] || typeColors.lainnya}>
+                          {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                        </Badge>
+                        {event.source === "reservation" && (
+                          <Badge variant="secondary" className="text-xs">
+                            Reservasi
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                    {event.time && (
+                      <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        <span>{event.time}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                       <MapPin className="w-4 h-4" />
                       <span>Masjid Pendidikan Ibnul Qayyim, Makassar</span>
                     </div>
@@ -158,7 +228,11 @@ export function EventCalendar() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {upcomingEvents.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            </div>
+          ) : upcomingEvents.length > 0 ? (
             <div className="divide-y divide-border">
               {upcomingEvents.map((event) => (
                 <div
@@ -170,12 +244,25 @@ export function EventCalendar() {
                       {event.title}
                     </h4>
                     <p className="text-sm text-primary">
-                      {format(event.date, "d MMM", { locale: id })} • {event.time}
+                      {format(event.date, "d MMM", { locale: id })} • {event.time || "-"}
                     </p>
+                    {event.source === "reservation" && event.requester && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        {event.requester}
+                      </p>
+                    )}
                   </div>
-                  <Badge variant="outline" className={typeColors[event.type]}>
-                    {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
-                  </Badge>
+                  <div className="flex flex-col gap-1 items-end">
+                    <Badge variant="outline" className={typeColors[event.type] || typeColors.lainnya}>
+                      {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                    </Badge>
+                    {event.source === "reservation" && (
+                      <Badge variant="secondary" className="text-xs">
+                        Reservasi
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

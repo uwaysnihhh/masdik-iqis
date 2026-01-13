@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,19 +8,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Send, CheckCircle, Clock, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parse, isWithinInterval, addMinutes } from "date-fns";
 import { id } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const timeSlots = [
-  { value: "08:00", label: "08:00 - 10:00" },
-  { value: "10:00", label: "10:00 - 12:00" },
-  { value: "14:00", label: "14:00 - 16:00" },
-  { value: "16:00", label: "16:00 - 18:00" },
-  { value: "19:00", label: "19:00 - 21:00" },
-];
+interface BookedSlot {
+  date: string;
+  startTime: string;
+  endTime: string | null;
+}
 
 const activityTypes = [
   { value: "pernikahan", label: "Akad Nikah / Resepsi" },
@@ -31,10 +29,19 @@ const activityTypes = [
   { value: "lainnya", label: "Lainnya" },
 ];
 
-interface BookedSlot {
-  date: string;
-  time: string;
-}
+// Generate time options from 05:00 to 23:00 in 30-minute intervals
+const generateTimeOptions = () => {
+  const times: string[] = [];
+  for (let hour = 5; hour <= 23; hour++) {
+    times.push(`${hour.toString().padStart(2, "0")}:00`);
+    if (hour < 23) {
+      times.push(`${hour.toString().padStart(2, "0")}:30`);
+    }
+  }
+  return times;
+};
+
+const timeOptions = generateTimeOptions();
 
 export function BookingForm() {
   const [date, setDate] = useState<Date>();
@@ -51,43 +58,100 @@ export function BookingForm() {
     description: "",
   });
 
-  // Fetch approved reservations to show booked slots
+  // Fetch approved reservations and activities to show booked slots
   useEffect(() => {
     const fetchBookedSlots = async () => {
-      const { data, error } = await supabase
-        .from("reservations")
-        .select("reservation_date, reservation_time")
-        .eq("status", "approved");
+      const [reservationsRes, activitiesRes] = await Promise.all([
+        supabase
+          .from("reservations")
+          .select("reservation_date, reservation_time, reservation_end_time")
+          .eq("status", "approved"),
+        supabase
+          .from("activities")
+          .select("event_date, event_time, event_end_time")
+          .eq("is_active", true),
+      ]);
 
-      if (!error && data) {
-        setBookedSlots(
-          data.map((r) => ({
+      const slots: BookedSlot[] = [];
+
+      if (reservationsRes.data) {
+        reservationsRes.data.forEach((r) => {
+          slots.push({
             date: r.reservation_date,
-            time: r.reservation_time,
-          }))
-        );
+            startTime: r.reservation_time,
+            endTime: r.reservation_end_time,
+          });
+        });
       }
+
+      if (activitiesRes.data) {
+        activitiesRes.data.forEach((a) => {
+          if (a.event_time) {
+            slots.push({
+              date: a.event_date,
+              startTime: a.event_time,
+              endTime: a.event_end_time,
+            });
+          }
+        });
+      }
+
+      setBookedSlots(slots);
     };
 
     fetchBookedSlots();
   }, []);
 
-  // Cek slot waktu yang tersedia untuk tanggal tertentu
-  const getAvailableSlots = (selectedDate: Date) => {
+  // Check if a time slot is booked for a given date
+  const isTimeBooked = (selectedDate: Date, checkTime: string) => {
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const bookedTimes = bookedSlots
-      .filter((slot) => slot.date === dateStr)
-      .map((slot) => slot.time);
-    return timeSlots.filter((slot) => !bookedTimes.includes(slot.value));
+    const checkTimeDate = parse(checkTime, "HH:mm", new Date());
+
+    return bookedSlots.some((slot) => {
+      if (slot.date !== dateStr) return false;
+
+      const slotStart = parse(slot.startTime, "HH:mm", new Date());
+      const slotEnd = slot.endTime
+        ? parse(slot.endTime, "HH:mm", new Date())
+        : addMinutes(slotStart, 120); // Default 2 hours if no end time
+
+      // Check if the time falls within the booked slot
+      return isWithinInterval(checkTimeDate, { start: slotStart, end: slotEnd }) ||
+             checkTime === slot.startTime;
+    });
   };
 
-  // Cek apakah tanggal fully booked
+  // Get available time slots for the selected date
+  const availableStartTimes = useMemo(() => {
+    if (!date) return timeOptions;
+    return timeOptions.filter((t) => !isTimeBooked(date, t));
+  }, [date, bookedSlots]);
+
+  // Get available end times (must be after start time)
+  const availableEndTimes = useMemo(() => {
+    if (!date || !time) return [];
+    const startIndex = timeOptions.indexOf(time);
+    return timeOptions.slice(startIndex + 1).filter((t) => {
+      // Check if any slot in between is booked
+      for (let i = startIndex + 1; i <= timeOptions.indexOf(t); i++) {
+        if (isTimeBooked(date, timeOptions[i])) return false;
+      }
+      return true;
+    });
+  }, [date, time, bookedSlots]);
+
+  // Check if date is fully booked
   const isFullyBooked = (day: Date) => {
     const dateStr = format(day, "yyyy-MM-dd");
-    const bookedTimes = bookedSlots
-      .filter((slot) => slot.date === dateStr)
-      .map((slot) => slot.time);
-    return bookedTimes.length >= timeSlots.length;
+    const bookedOnDate = bookedSlots.filter((slot) => slot.date === dateStr);
+    // Consider fully booked if more than 80% of time slots are taken
+    return bookedOnDate.length >= timeOptions.length * 0.8;
+  };
+
+  // Check if date has some bookings
+  const hasBookings = (day: Date) => {
+    const dateStr = format(day, "yyyy-MM-dd");
+    return bookedSlots.some((slot) => slot.date === dateStr);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -258,19 +322,14 @@ export function BookingForm() {
                     selected={date}
                     onSelect={(newDate) => {
                       setDate(newDate);
-                      setTime(""); // Reset waktu saat tanggal berubah
+                      setTime("");
+                      setEndTime("");
                     }}
                     disabled={(day) =>
                       day < new Date() || isFullyBooked(day)
                     }
                     modifiers={{
-                      partiallyBooked: (day) => {
-                        const dateStr = format(day, "yyyy-MM-dd");
-                        const bookedTimes = bookedSlots
-                          .filter((slot) => slot.date === dateStr)
-                          .map((slot) => slot.time);
-                        return bookedTimes.length > 0 && bookedTimes.length < timeSlots.length;
-                      },
+                      partiallyBooked: (day) => hasBookings(day) && !isFullyBooked(day),
                       fullyBooked: (day) => isFullyBooked(day),
                     }}
                     modifiersClassNames={{
@@ -312,24 +371,39 @@ export function BookingForm() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Mulai</Label>
-                    <Input
-                      type="time"
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                      className="w-full"
-                    />
+                    <Select value={time} onValueChange={(v) => { setTime(v); setEndTime(""); }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih jam mulai" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timeOptions.map((t) => {
+                          const isBooked = isTimeBooked(date, t);
+                          return (
+                            <SelectItem key={t} value={t} disabled={isBooked}>
+                              {t} {isBooked && "(Sudah dipesan)"}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Sampai</Label>
-                    <Input
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className="w-full"
-                    />
+                    <Select value={endTime} onValueChange={setEndTime} disabled={!time}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih jam selesai" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableEndTimes.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                {getAvailableSlots(date).length < timeSlots.length && (
+                {availableStartTimes.length < timeOptions.length && (
                   <p className="text-xs text-amber-600">
                     ⚠️ Beberapa waktu pada tanggal ini sudah dipesan
                   </p>

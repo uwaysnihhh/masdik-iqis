@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   CalendarDays,
   Wallet,
   FileText,
@@ -44,12 +50,15 @@ import {
   Eye,
   ShieldAlert,
   Loader2,
+  CalendarIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
+import { format, parse, isWithinInterval, addMinutes } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 
 type BookingStatus = "pending" | "approved" | "rejected";
 
@@ -106,6 +115,26 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+// Generate time options from 05:00 to 23:00 in 30-minute intervals
+const generateTimeOptions = () => {
+  const times: string[] = [];
+  for (let hour = 5; hour <= 23; hour++) {
+    times.push(`${hour.toString().padStart(2, "0")}:00`);
+    if (hour < 23) {
+      times.push(`${hour.toString().padStart(2, "0")}:30`);
+    }
+  }
+  return times;
+};
+
+const timeOptions = generateTimeOptions();
+
+interface BookedSlot {
+  date: string;
+  startTime: string;
+  endTime: string | null;
+}
+
 export default function Admin() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -114,6 +143,7 @@ export default function Admin() {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [statDialogOpen, setStatDialogOpen] = useState<string | null>(null);
+  const [bookedSlots, setBookedSlots] = useState<BookedSlot[]>([]);
   const navigate = useNavigate();
 
   // Transaction form state
@@ -124,7 +154,7 @@ export default function Admin() {
 
   // Event form state
   const [eventTitle, setEventTitle] = useState("");
-  const [eventDate, setEventDate] = useState("");
+  const [eventDateObj, setEventDateObj] = useState<Date>();
   const [eventTime, setEventTime] = useState("");
   const [eventEndTime, setEventEndTime] = useState("");
   const [eventType, setEventType] = useState("kajian");
@@ -150,6 +180,32 @@ export default function Admin() {
       if (reservationsRes.data) setBookings(reservationsRes.data);
       if (transactionsRes.data) setTransactions(transactionsRes.data);
       if (activitiesRes.data) setEvents(activitiesRes.data);
+
+      // Build booked slots for time validation
+      const slots: BookedSlot[] = [];
+      if (reservationsRes.data) {
+        reservationsRes.data
+          .filter((r) => r.status === "approved")
+          .forEach((r) => {
+            slots.push({
+              date: r.reservation_date,
+              startTime: r.reservation_time,
+              endTime: r.reservation_end_time,
+            });
+          });
+      }
+      if (activitiesRes.data) {
+        activitiesRes.data.forEach((a) => {
+          if (a.event_time) {
+            slots.push({
+              date: a.event_date,
+              startTime: a.event_time,
+              endTime: a.event_end_time,
+            });
+          }
+        });
+      }
+      setBookedSlots(slots);
 
       setIsLoadingData(false);
     };
@@ -272,14 +328,16 @@ export default function Admin() {
   };
 
   const handleAddEvent = async () => {
-    if (!eventTitle || !eventDate) {
+    if (!eventTitle || !eventDateObj) {
       toast({ title: "Lengkapi semua field", variant: "destructive" });
       return;
     }
 
+    const eventDateStr = format(eventDateObj, "yyyy-MM-dd");
+
     const { data, error } = await supabase.from("activities").insert({
       title: eventTitle,
-      event_date: eventDate,
+      event_date: eventDateStr,
       event_time: eventTime || null,
       event_end_time: eventEndTime || null,
       type: eventType,
@@ -294,16 +352,60 @@ export default function Admin() {
 
     setEvents([data, ...events]);
     setEventTitle("");
-    setEventDate("");
+    setEventDateObj(undefined);
     setEventTime("");
     setEventEndTime("");
     setEventType("kajian");
     setEventDescription("");
     setEventDialogOpen(false);
     toast({ title: "Kegiatan Ditambahkan" });
+
+    // Update booked slots
+    if (eventTime) {
+      setBookedSlots((prev) => [
+        ...prev,
+        { date: eventDateStr, startTime: eventTime, endTime: eventEndTime || null },
+      ]);
+    }
   };
 
   const pendingBookings = bookings.filter((b) => b.status === "pending");
+
+  // Check if a time slot is booked for a given date
+  const isTimeBooked = (selectedDate: Date, checkTime: string) => {
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    const checkTimeDate = parse(checkTime, "HH:mm", new Date());
+
+    return bookedSlots.some((slot) => {
+      if (slot.date !== dateStr) return false;
+
+      const slotStart = parse(slot.startTime, "HH:mm", new Date());
+      const slotEnd = slot.endTime
+        ? parse(slot.endTime, "HH:mm", new Date())
+        : addMinutes(slotStart, 120);
+
+      return isWithinInterval(checkTimeDate, { start: slotStart, end: slotEnd }) ||
+             checkTime === slot.startTime;
+    });
+  };
+
+  // Get available end times for events
+  const availableEventEndTimes = useMemo(() => {
+    if (!eventDateObj || !eventTime) return [];
+    const startIndex = timeOptions.indexOf(eventTime);
+    return timeOptions.slice(startIndex + 1).filter((t) => {
+      for (let i = startIndex + 1; i <= timeOptions.indexOf(t); i++) {
+        if (isTimeBooked(eventDateObj, timeOptions[i])) return false;
+      }
+      return true;
+    });
+  }, [eventDateObj, eventTime, bookedSlots]);
+
+  // Check if date has some bookings
+  const hasBookingsOnDate = (day: Date) => {
+    const dateStr = format(day, "yyyy-MM-dd");
+    return bookedSlots.some((slot) => slot.date === dateStr);
+  };
 
   // Filter data based on search term
   const filteredBookings = bookings.filter((b) =>
@@ -862,28 +964,99 @@ export default function Admin() {
                           </div>
                           <div className="space-y-2">
                             <Label>Tanggal</Label>
-                            <Input
-                              type="date"
-                              value={eventDate}
-                              onChange={(e) => setEventDate(e.target.value)}
-                            />
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !eventDateObj && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {eventDateObj
+                                    ? format(eventDateObj, "PPP", { locale: idLocale })
+                                    : "Pilih tanggal"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={eventDateObj}
+                                  onSelect={(newDate) => {
+                                    setEventDateObj(newDate);
+                                    setEventTime("");
+                                    setEventEndTime("");
+                                  }}
+                                  disabled={(day) => day < new Date()}
+                                  modifiers={{
+                                    hasBooking: (day) => hasBookingsOnDate(day),
+                                  }}
+                                  modifiersClassNames={{
+                                    hasBooking: "bg-amber-100 text-amber-800",
+                                  }}
+                                  className="pointer-events-auto"
+                                  initialFocus
+                                />
+                                <div className="p-3 border-t border-border">
+                                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                      <div className="w-3 h-3 bg-amber-100 rounded" />
+                                      <span>Ada kegiatan</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <div className="w-3 h-3 bg-primary rounded" />
+                                      <span>Dipilih</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>Waktu Mulai</Label>
-                              <Input
-                                type="time"
+                              <Select
                                 value={eventTime}
-                                onChange={(e) => setEventTime(e.target.value)}
-                              />
+                                onValueChange={(v) => {
+                                  setEventTime(v);
+                                  setEventEndTime("");
+                                }}
+                                disabled={!eventDateObj}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Pilih jam" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {timeOptions.map((t) => {
+                                    const isBooked = eventDateObj ? isTimeBooked(eventDateObj, t) : false;
+                                    return (
+                                      <SelectItem key={t} value={t} disabled={isBooked}>
+                                        {t} {isBooked && "(Sudah terpakai)"}
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
                             </div>
                             <div className="space-y-2">
                               <Label>Waktu Selesai</Label>
-                              <Input
-                                type="time"
+                              <Select
                                 value={eventEndTime}
-                                onChange={(e) => setEventEndTime(e.target.value)}
-                              />
+                                onValueChange={setEventEndTime}
+                                disabled={!eventTime}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Pilih jam" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableEventEndTimes.map((t) => (
+                                    <SelectItem key={t} value={t}>
+                                      {t}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
                           <div className="space-y-2">
