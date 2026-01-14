@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import type { PrayerTime } from "@/types";
+import { format, parse, isWithinInterval } from "date-fns";
 
 const defaultPrayerData: PrayerTime[] = [
   { name: "Subuh", nameArabic: "الفجر", time: "04:30" },
@@ -10,9 +12,12 @@ const defaultPrayerData: PrayerTime[] = [
   { name: "Isya", nameArabic: "العشاء", time: "19:15" },
 ];
 
+interface CurrentActivity {
+  title: string;
+  type: string;
+}
+
 function parseTimeToMinutes(timeStr: string): number {
-  // Remove any extra text like "(WITA)" and parse time.
-  // Supports separators like ":" or "." (e.g. "08.52.13" or "08:52:13").
   const cleanTime = timeStr.replace(/\s*\([^)]*\)/g, "").trim();
   const match = cleanTime.match(/(\d{1,2})\D(\d{2})/);
   if (!match) return 0;
@@ -41,6 +46,9 @@ export function PrayerTimes() {
   const [currentDate, setCurrentDate] = useState("");
   const [activePrayer, setActivePrayer] = useState<string | null>(null);
   const [prayerData, setPrayerData] = useState<PrayerTime[]>(defaultPrayerData);
+  const [currentActivity, setCurrentActivity] = useState<CurrentActivity | null>(null);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<any[]>([]);
 
   // Fetch prayer times for Makassar
   useEffect(() => {
@@ -51,7 +59,6 @@ export function PrayerTimes() {
         const month = today.getMonth() + 1;
         const day = today.getDate();
         
-        // Makassar coordinates: -5.1477, 119.4327
         const response = await fetch(
           `https://api.aladhan.com/v1/timings/${day}-${month}-${year}?latitude=-5.1477&longitude=119.4327&method=20`
         );
@@ -75,11 +82,69 @@ export function PrayerTimes() {
     fetchPrayerTimes();
   }, []);
 
+  // Fetch today's activities and approved reservations
+  useEffect(() => {
+    const fetchTodayEvents = async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      
+      const [activitiesRes, reservationsRes] = await Promise.all([
+        supabase
+          .from("activities")
+          .select("*")
+          .eq("event_date", today)
+          .eq("is_active", true),
+        supabase
+          .from("reservations")
+          .select("*")
+          .eq("reservation_date", today)
+          .eq("status", "approved"),
+      ]);
+
+      if (activitiesRes.data) setActivities(activitiesRes.data);
+      if (reservationsRes.data) setReservations(reservationsRes.data);
+    };
+
+    fetchTodayEvents();
+  }, []);
+
+  // Check for current ongoing activity
+  const checkCurrentActivity = (timeStr: string) => {
+    const now = parse(timeStr.replace(/\./g, ":").substring(0, 5), "HH:mm", new Date());
+
+    // Check activities
+    for (const activity of activities) {
+      if (!activity.event_time) continue;
+      
+      const startTime = parse(activity.event_time, "HH:mm", new Date());
+      const endTime = activity.event_end_time
+        ? parse(activity.event_end_time, "HH:mm", new Date())
+        : new Date(startTime.getTime() + 2 * 60 * 60 * 1000); // Default 2 hours
+
+      if (isWithinInterval(now, { start: startTime, end: endTime })) {
+        return { title: activity.title, type: activity.type };
+      }
+    }
+
+    // Check approved reservations
+    for (const reservation of reservations) {
+      const startTime = parse(reservation.reservation_time, "HH:mm", new Date());
+      const endTime = reservation.reservation_end_time
+        ? parse(reservation.reservation_end_time, "HH:mm", new Date())
+        : new Date(startTime.getTime() + 2 * 60 * 60 * 1000);
+
+      if (isWithinInterval(now, { start: startTime, end: endTime })) {
+        const typeLabel = reservation.activity_type.charAt(0).toUpperCase() + reservation.activity_type.slice(1);
+        return { title: `Reservasi: ${typeLabel}`, type: reservation.activity_type };
+      }
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
 
-      // Use Makassar time to match fetched prayer times
       const timeStr = new Intl.DateTimeFormat("id-ID", {
         timeZone: "Asia/Makassar",
         hour: "2-digit",
@@ -96,16 +161,51 @@ export function PrayerTimes() {
         day: "numeric",
       }).format(now);
 
-
       setCurrentTime(timeStr);
       setCurrentDate(dateStr);
-      setActivePrayer(getActivePrayer(timeStr, prayerData));
+      
+      const prayer = getActivePrayer(timeStr, prayerData);
+      setActivePrayer(prayer);
+      
+      // Only check for activity if no prayer is active
+      if (!prayer) {
+        setCurrentActivity(checkCurrentActivity(timeStr));
+      } else {
+        setCurrentActivity(null);
+      }
     };
 
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [prayerData]);
+  }, [prayerData, activities, reservations]);
+
+  // Determine what status to show
+  const getStatusDisplay = () => {
+    if (activePrayer) {
+      return {
+        type: "prayer",
+        text: (
+          <>
+            Waktu Shalat <span className="font-bold">{activePrayer}</span> sedang berlangsung
+          </>
+        ),
+      };
+    }
+    if (currentActivity) {
+      return {
+        type: "activity",
+        text: (
+          <>
+            <span className="font-bold">{currentActivity.title}</span> sedang berlangsung
+          </>
+        ),
+      };
+    }
+    return null;
+  };
+
+  const statusDisplay = getStatusDisplay();
 
   return (
     <div className="relative overflow-hidden rounded-2xl gradient-islamic p-6 lg:p-8 shadow-islamic">
@@ -148,13 +248,24 @@ export function PrayerTimes() {
           ))}
         </div>
 
-        {/* Current Prayer Indicator */}
-        {activePrayer && (
+        {/* Status Indicator (Prayer or Activity) */}
+        {statusDisplay && (
           <div className="mt-6 text-center">
-            <div className="inline-flex items-center gap-2 bg-primary-foreground/20 backdrop-blur-sm px-4 py-2 rounded-full">
-              <span className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-              <span className="text-primary-foreground text-sm">
-                Waktu Shalat <span className="font-bold">{activePrayer}</span> sedang berlangsung
+            <div className={cn(
+              "inline-flex items-center gap-2 backdrop-blur-sm px-4 py-2 rounded-full",
+              statusDisplay.type === "prayer" 
+                ? "bg-primary-foreground/20" 
+                : "bg-accent/90 text-accent-foreground"
+            )}>
+              <span className={cn(
+                "w-2 h-2 rounded-full animate-pulse",
+                statusDisplay.type === "prayer" ? "bg-accent" : "bg-accent-foreground"
+              )} />
+              <span className={cn(
+                "text-sm",
+                statusDisplay.type === "prayer" ? "text-primary-foreground" : "text-accent-foreground"
+              )}>
+                {statusDisplay.text}
               </span>
             </div>
           </div>

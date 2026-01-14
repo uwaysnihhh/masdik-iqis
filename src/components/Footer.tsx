@@ -78,15 +78,34 @@ export function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start gap-3 text-sm text-background/70">
                 <MapPin className="w-5 h-5 text-gold shrink-0 mt-0.5" />
-                <span>Jl. Taman Bunga Sudiang No.2, Laikang, Biringkanaya, Makassar City, South Sulawesi 90242</span>
+                <a 
+                  href="https://maps.google.com/?q=Jl.+Taman+Bunga+Sudiang+No.2,+Laikang,+Biringkanaya,+Makassar+City,+South+Sulawesi+90242"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-gold transition-colors"
+                >
+                  Jl. Taman Bunga Sudiang No.2, Laikang, Biringkanaya, Makassar City, South Sulawesi 90242
+                </a>
               </li>
               <li className="flex items-center gap-3 text-sm text-background/70">
                 <Phone className="w-5 h-5 text-gold shrink-0" />
-                <span>+62 812-4429-4529</span>
+                <a 
+                  href="https://wa.me/6281244294529"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-gold transition-colors"
+                >
+                  +62 812-4429-4529
+                </a>
               </li>
               <li className="flex items-center gap-3 text-sm text-background/70">
                 <Mail className="w-5 h-5 text-gold shrink-0" />
-                <span>masdik@iqis.sch.id</span>
+                <a 
+                  href="mailto:masdik@iqis.sch.id"
+                  className="hover:text-gold transition-colors"
+                >
+                  masdik@iqis.sch.id
+                </a>
               </li>
             </ul>
           </div>

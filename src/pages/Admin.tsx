@@ -51,6 +51,7 @@ import {
   ShieldAlert,
   Loader2,
   CalendarIcon,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -300,6 +301,21 @@ export default function Admin() {
 
     setBookings(bookings.map((b) => (b.id === id ? { ...b, status: "rejected" } : b)));
     toast({ title: "Reservasi Ditolak", variant: "destructive" });
+  };
+
+  const handleDeleteReservation = async (id: string) => {
+    const { error } = await supabase
+      .from("reservations")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast({ title: "Gagal menghapus", variant: "destructive" });
+      return;
+    }
+
+    setBookings(bookings.filter((b) => b.id !== id));
+    toast({ title: "Reservasi Dihapus" });
   };
 
   const handleAddTransaction = async () => {
@@ -833,6 +849,16 @@ export default function Admin() {
                                         <X className="w-4 h-4" />
                                       </Button>
                                     </>
+                                  )}
+                                  {booking.status === "rejected" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-destructive hover:text-destructive px-2"
+                                      onClick={() => handleDeleteReservation(booking.id)}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
                                   )}
                                 </div>
                               </TableCell>

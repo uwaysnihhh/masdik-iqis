@@ -157,7 +157,7 @@ export function BookingForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.phone || !formData.activity || !date || !time) {
+    if (!formData.name || !formData.phone || !formData.activity || !date || !time || !formData.description) {
       toast({
         title: "Form Tidak Lengkap",
         description: "Mohon lengkapi semua field yang diperlukan",
@@ -417,7 +417,7 @@ export function BookingForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Keterangan Tambahan</Label>
+            <Label htmlFor="description">Keterangan Kegiatan *</Label>
             <Textarea
               id="description"
               placeholder="Tuliskan detail kegiatan Anda..."
@@ -426,6 +426,7 @@ export function BookingForm() {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
+              required
             />
           </div>
 

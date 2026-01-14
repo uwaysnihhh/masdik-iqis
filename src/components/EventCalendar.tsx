@@ -2,6 +2,12 @@ import { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CalendarDays, Clock, MapPin, User } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -37,6 +43,7 @@ export function EventCalendar() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<EventItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -167,7 +174,8 @@ export function EventCalendar() {
                 {selectedDateEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                    className="p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                    onClick={() => setSelectedEvent(event)}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
@@ -175,7 +183,7 @@ export function EventCalendar() {
                           {event.title}
                         </h4>
                         {event.description && (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground line-clamp-2">
                             {event.description}
                           </p>
                         )}
@@ -237,7 +245,8 @@ export function EventCalendar() {
               {upcomingEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="flex items-center justify-between py-4 first:pt-0 last:pb-0"
+                  className="flex items-center justify-between py-4 first:pt-0 last:pb-0 cursor-pointer hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-colors"
+                  onClick={() => setSelectedEvent(event)}
                 >
                   <div className="flex-1">
                     <h4 className="font-semibold text-foreground">
@@ -273,6 +282,59 @@ export function EventCalendar() {
           )}
         </CardContent>
       </Card>
+
+      {/* Event Detail Dialog */}
+      <Dialog open={!!selectedEvent} onOpenChange={(open) => !open && setSelectedEvent(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">{selectedEvent?.title}</DialogTitle>
+          </DialogHeader>
+          {selectedEvent && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className={typeColors[selectedEvent.type] || typeColors.lainnya}>
+                  {selectedEvent.type.charAt(0).toUpperCase() + selectedEvent.type.slice(1)}
+                </Badge>
+                {selectedEvent.source === "reservation" && (
+                  <Badge variant="secondary">Reservasi</Badge>
+                )}
+              </div>
+
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <CalendarDays className="w-4 h-4" />
+                  <span>{format(selectedEvent.date, "EEEE, d MMMM yyyy", { locale: id })}</span>
+                </div>
+                {selectedEvent.time && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="w-4 h-4" />
+                    <span>{selectedEvent.time}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="w-4 h-4" />
+                  <span>Masjid Pendidikan Ibnul Qayyim, Makassar</span>
+                </div>
+                {selectedEvent.source === "reservation" && selectedEvent.requester && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <User className="w-4 h-4" />
+                    <span>Pemohon: {selectedEvent.requester}</span>
+                  </div>
+                )}
+              </div>
+
+              {selectedEvent.description && (
+                <div className="pt-2 border-t">
+                  <h4 className="font-medium text-sm mb-2">Keterangan Kegiatan</h4>
+                  <p className="text-muted-foreground text-sm whitespace-pre-wrap">
+                    {selectedEvent.description}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
