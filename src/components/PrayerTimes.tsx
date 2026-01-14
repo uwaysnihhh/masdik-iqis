@@ -248,23 +248,12 @@ export function PrayerTimes() {
           ))}
         </div>
 
-        {/* Status Indicator (Prayer or Activity) */}
+        {/* Status Indicator (Prayer or Activity) - Same design for both */}
         {statusDisplay && (
           <div className="mt-6 text-center">
-            <div className={cn(
-              "inline-flex items-center gap-2 backdrop-blur-sm px-4 py-2 rounded-full",
-              statusDisplay.type === "prayer" 
-                ? "bg-primary-foreground/20" 
-                : "bg-accent/90 text-accent-foreground"
-            )}>
-              <span className={cn(
-                "w-2 h-2 rounded-full animate-pulse",
-                statusDisplay.type === "prayer" ? "bg-accent" : "bg-accent-foreground"
-              )} />
-              <span className={cn(
-                "text-sm",
-                statusDisplay.type === "prayer" ? "text-primary-foreground" : "text-accent-foreground"
-              )}>
+            <div className="inline-flex items-center gap-2 backdrop-blur-sm px-4 py-2 rounded-full bg-primary-foreground/20">
+              <span className="w-2 h-2 rounded-full animate-pulse bg-accent" />
+              <span className="text-sm text-primary-foreground">
                 {statusDisplay.text}
               </span>
             </div>

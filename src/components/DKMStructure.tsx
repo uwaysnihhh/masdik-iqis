@@ -21,13 +21,14 @@ const dkmMembers: DKMMember[] = [
   { id: "10", name: "Khalid Fikri", position: "Bidang Humas & Media", role: "bidang" },
   { id: "11", name: "Hammam Abdul Aziz", position: "Bidang Humas & Media", role: "bidang" },
   // Bidang Sarana & Prasarana
-  { id: "11", name: "Adnan Pabean, S.Pd.", position: "Bidang Sarana & Prasarana", role: "bidang" },
+  { id: "12", name: "Adnan Pabean, S.Pd.", position: "Bidang Sarana & Prasarana", role: "bidang" },
+  { id: "13", name: "Supriyanto", position: "Bidang Sarana & Prasarana", role: "bidang" },
   // Bidang Perawatan & Kebersihan
-  { id: "12", name: "Suhardi", position: "Bidang Perawatan & Kebersihan", role: "bidang" },
+  { id: "14", name: "Suhardi", position: "Bidang Perawatan & Kebersihan", role: "bidang" },
   // Remaja Masjid
-  { id: "14", name: "Rizki Ridho", position: "Remaja Masjid", role: "remaja" },
-  { id: "15", name: "Suhaib", position: "Remaja Masjid", role: "remaja" },
-  { id: "16", name: "Ali Abdurrozzaq", position: "Remaja Masjid", role: "remaja" },
+  { id: "15", name: "Rizki Ridho", position: "Remaja Masjid", role: "remaja" },
+  { id: "16", name: "Suhaib", position: "Remaja Masjid", role: "remaja" },
+  { id: "17", name: "Ali Abdurrozzaq", position: "Remaja Masjid", role: "remaja" },
 ];
 
 export function DKMStructure() {

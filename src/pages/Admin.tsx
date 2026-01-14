@@ -17,6 +17,8 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -164,6 +166,10 @@ export default function Admin() {
 
   // View booking dialog
   const [viewBooking, setViewBooking] = useState<Booking | null>(null);
+
+  // Delete confirmation dialogs
+  const [deleteReservationId, setDeleteReservationId] = useState<string | null>(null);
+  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
 
   const { user, isAdmin, isLoading: authLoading, signOut } = useAuth();
 
@@ -316,6 +322,44 @@ export default function Admin() {
 
     setBookings(bookings.filter((b) => b.id !== id));
     toast({ title: "Reservasi Dihapus" });
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    const { error } = await supabase
+      .from("activities")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast({ title: "Gagal menghapus kegiatan", variant: "destructive" });
+      return;
+    }
+
+    setEvents(events.filter((e) => e.id !== id));
+    setBookedSlots(bookedSlots.filter((s) => {
+      const event = events.find((e) => e.id === id);
+      return !(event && s.date === event.event_date && s.startTime === event.event_time);
+    }));
+    toast({ title: "Kegiatan Dihapus" });
+  };
+
+  // Helper to check if event is past
+  const isEventPast = (eventDate: string, eventEndTime: string | null) => {
+    const now = new Date();
+    const eventDateObj = new Date(eventDate);
+    
+    if (eventDateObj.toDateString() === now.toDateString()) {
+      // Same day - check time
+      if (eventEndTime) {
+        const [hours, minutes] = eventEndTime.split(":").map(Number);
+        const endTime = new Date(eventDateObj);
+        endTime.setHours(hours, minutes, 0, 0);
+        return now > endTime;
+      }
+      return false;
+    }
+    
+    return eventDateObj < now;
   };
 
   const handleAddTransaction = async () => {
@@ -851,14 +895,39 @@ export default function Admin() {
                                     </>
                                   )}
                                   {booking.status === "rejected" && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="text-destructive hover:text-destructive px-2"
-                                      onClick={() => handleDeleteReservation(booking.id)}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
+                                    <Dialog open={deleteReservationId === booking.id} onOpenChange={(open) => setDeleteReservationId(open ? booking.id : null)}>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-destructive hover:text-destructive px-2"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent>
+                                        <DialogHeader>
+                                          <DialogTitle>Hapus Reservasi</DialogTitle>
+                                          <DialogDescription>
+                                            Apakah Anda yakin ingin menghapus reservasi dari "{booking.name}"? Tindakan ini tidak dapat dibatalkan.
+                                          </DialogDescription>
+                                        </DialogHeader>
+                                        <DialogFooter className="gap-2 sm:gap-0">
+                                          <Button variant="outline" onClick={() => setDeleteReservationId(null)}>
+                                            Batal
+                                          </Button>
+                                          <Button 
+                                            variant="destructive" 
+                                            onClick={() => {
+                                              handleDeleteReservation(booking.id);
+                                              setDeleteReservationId(null);
+                                            }}
+                                          >
+                                            Hapus
+                                          </Button>
+                                        </DialogFooter>
+                                      </DialogContent>
+                                    </Dialog>
                                   )}
                                 </div>
                               </TableCell>
@@ -1123,29 +1192,70 @@ export default function Admin() {
                           <TableHead>Tanggal</TableHead>
                           <TableHead>Waktu</TableHead>
                           <TableHead>Tipe</TableHead>
+                          <TableHead>Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredEvents.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                               {searchTerm ? "Tidak ada kegiatan yang cocok" : "Belum ada kegiatan"}
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredEvents.map((event) => (
-                            <TableRow key={event.id}>
-                              <TableCell className="font-medium text-sm">{event.title}</TableCell>
-                              <TableCell className="text-sm">{event.event_date}</TableCell>
-                              <TableCell className="text-sm">
-                                {event.event_time || "-"}
-                                {event.event_end_time && ` - ${event.event_end_time}`}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{event.type}</Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))
+                          filteredEvents.map((event) => {
+                            const isPast = isEventPast(event.event_date, event.event_end_time);
+                            return (
+                              <TableRow key={event.id}>
+                                <TableCell className="font-medium text-sm">{event.title}</TableCell>
+                                <TableCell className="text-sm">{event.event_date}</TableCell>
+                                <TableCell className="text-sm">
+                                  {event.event_time || "-"}
+                                  {event.event_end_time && ` - ${event.event_end_time}`}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{event.type}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {isPast && (
+                                    <Dialog open={deleteEventId === event.id} onOpenChange={(open) => setDeleteEventId(open ? event.id : null)}>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-destructive hover:text-destructive px-2"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent>
+                                        <DialogHeader>
+                                          <DialogTitle>Hapus Kegiatan</DialogTitle>
+                                          <DialogDescription>
+                                            Apakah Anda yakin ingin menghapus kegiatan "{event.title}"? Tindakan ini tidak dapat dibatalkan.
+                                          </DialogDescription>
+                                        </DialogHeader>
+                                        <DialogFooter className="gap-2 sm:gap-0">
+                                          <Button variant="outline" onClick={() => setDeleteEventId(null)}>
+                                            Batal
+                                          </Button>
+                                          <Button 
+                                            variant="destructive" 
+                                            onClick={() => {
+                                              handleDeleteEvent(event.id);
+                                              setDeleteEventId(null);
+                                            }}
+                                          >
+                                            Hapus
+                                          </Button>
+                                        </DialogFooter>
+                                      </DialogContent>
+                                    </Dialog>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
                         )}
                       </TableBody>
                     </Table>
