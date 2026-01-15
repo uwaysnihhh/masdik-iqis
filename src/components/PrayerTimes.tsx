@@ -133,8 +133,11 @@ export function PrayerTimes() {
         : new Date(startTime.getTime() + 2 * 60 * 60 * 1000);
 
       if (isWithinInterval(now, { start: startTime, end: endTime })) {
-        const typeLabel = reservation.activity_type.charAt(0).toUpperCase() + reservation.activity_type.slice(1);
-        return { title: `Reservasi: ${typeLabel}`, type: reservation.activity_type };
+        // Show description if available, otherwise show activity type
+        const displayTitle = reservation.description 
+          ? reservation.description 
+          : reservation.activity_type.charAt(0).toUpperCase() + reservation.activity_type.slice(1);
+        return { title: displayTitle, type: reservation.activity_type };
       }
     }
 

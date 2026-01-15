@@ -388,8 +388,8 @@ export default function Admin() {
   };
 
   const handleAddEvent = async () => {
-    if (!eventTitle || !eventDateObj) {
-      toast({ title: "Lengkapi semua field", variant: "destructive" });
+    if (!eventTitle || !eventDateObj || !eventDescription) {
+      toast({ title: "Lengkapi semua field (Keterangan Kegiatan wajib diisi)", variant: "destructive" });
       return;
     }
 
@@ -894,7 +894,7 @@ export default function Admin() {
                                       </Button>
                                     </>
                                   )}
-                                  {booking.status === "rejected" && (
+                                  {(booking.status === "rejected" || booking.status === "approved") && (
                                     <Dialog open={deleteReservationId === booking.id} onOpenChange={(open) => setDeleteReservationId(open ? booking.id : null)}>
                                       <DialogTrigger asChild>
                                         <Button
@@ -1170,11 +1170,12 @@ export default function Admin() {
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label>Deskripsi</Label>
+                            <Label>Keterangan Kegiatan <span className="text-destructive">*</span></Label>
                             <Textarea
-                              placeholder="Deskripsi kegiatan"
+                              placeholder="Keterangan kegiatan (wajib diisi)"
                               value={eventDescription}
                               onChange={(e) => setEventDescription(e.target.value)}
+                              required
                             />
                           </div>
                           <Button onClick={handleAddEvent} className="w-full">
@@ -1203,9 +1204,7 @@ export default function Admin() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredEvents.map((event) => {
-                            const isPast = isEventPast(event.event_date, event.event_end_time);
-                            return (
+                          filteredEvents.map((event) => (
                               <TableRow key={event.id}>
                                 <TableCell className="font-medium text-sm">{event.title}</TableCell>
                                 <TableCell className="text-sm">{event.event_date}</TableCell>
@@ -1217,45 +1216,42 @@ export default function Admin() {
                                   <Badge variant="outline">{event.type}</Badge>
                                 </TableCell>
                                 <TableCell>
-                                  {isPast && (
-                                    <Dialog open={deleteEventId === event.id} onOpenChange={(open) => setDeleteEventId(open ? event.id : null)}>
-                                      <DialogTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="text-destructive hover:text-destructive px-2"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
+                                  <Dialog open={deleteEventId === event.id} onOpenChange={(open) => setDeleteEventId(open ? event.id : null)}>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-destructive hover:text-destructive px-2"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Hapus Kegiatan</DialogTitle>
+                                        <DialogDescription>
+                                          Apakah Anda yakin ingin menghapus kegiatan "{event.title}"? Tindakan ini tidak dapat dibatalkan.
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <DialogFooter className="gap-2 sm:gap-0">
+                                        <Button variant="outline" onClick={() => setDeleteEventId(null)}>
+                                          Batal
                                         </Button>
-                                      </DialogTrigger>
-                                      <DialogContent>
-                                        <DialogHeader>
-                                          <DialogTitle>Hapus Kegiatan</DialogTitle>
-                                          <DialogDescription>
-                                            Apakah Anda yakin ingin menghapus kegiatan "{event.title}"? Tindakan ini tidak dapat dibatalkan.
-                                          </DialogDescription>
-                                        </DialogHeader>
-                                        <DialogFooter className="gap-2 sm:gap-0">
-                                          <Button variant="outline" onClick={() => setDeleteEventId(null)}>
-                                            Batal
-                                          </Button>
-                                          <Button 
-                                            variant="destructive" 
-                                            onClick={() => {
-                                              handleDeleteEvent(event.id);
-                                              setDeleteEventId(null);
-                                            }}
-                                          >
-                                            Hapus
-                                          </Button>
-                                        </DialogFooter>
-                                      </DialogContent>
-                                    </Dialog>
-                                  )}
+                                        <Button 
+                                          variant="destructive" 
+                                          onClick={() => {
+                                            handleDeleteEvent(event.id);
+                                            setDeleteEventId(null);
+                                          }}
+                                        >
+                                          Hapus
+                                        </Button>
+                                      </DialogFooter>
+                                    </DialogContent>
+                                  </Dialog>
                                 </TableCell>
                               </TableRow>
-                            );
-                          })
+                          ))
                         )}
                       </TableBody>
                     </Table>
