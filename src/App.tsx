@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Kegiatan from "./pages/Kegiatan";
+import ETaklim from "./pages/ETaklim";
+import Pustaka from "./pages/Pustaka";
 import Layanan from "./pages/Layanan";
 import Struktur from "./pages/Struktur";
 import Saldo from "./pages/Saldo";
@@ -25,6 +27,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/kegiatan" element={<Kegiatan />} />
+            <Route path="/e-taklim" element={<ETaklim />} />
+            <Route path="/pustaka" element={<Pustaka />} />
             <Route path="/layanan" element={<Layanan />} />
             <Route path="/struktur" element={<Struktur />} />
             <Route path="/saldo" element={<Saldo />} />

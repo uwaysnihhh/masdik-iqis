@@ -8,6 +8,8 @@ import logoMasjid from "@/assets/logo-masjid.png";
 const navLinks = [
   { name: "Beranda", href: "/" },
   { name: "Kegiatan", href: "/kegiatan" },
+  { name: "e-Taklim", href: "/e-taklim" },
+  { name: "Pustaka", href: "/pustaka" },
   { name: "Layanan", href: "/layanan" },
   { name: "Struktur", href: "/struktur" },
   { name: "Saldo", href: "/saldo" },

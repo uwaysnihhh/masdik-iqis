@@ -54,6 +54,7 @@ import {
   Loader2,
   CalendarIcon,
   Trash2,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -62,6 +63,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import { format, parse, isWithinInterval, addMinutes } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { PustakaManager } from "@/components/admin/PustakaManager";
 
 type BookingStatus = "pending" | "approved" | "rejected";
 
@@ -773,6 +775,11 @@ export default function Admin() {
                   <span className="hidden sm:inline">Kegiatan</span>
                   <span className="sm:hidden">Keg</span>
                 </TabsTrigger>
+                <TabsTrigger value="pustaka" className="gap-1 md:gap-2 text-xs md:text-sm">
+                  <BookOpen className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">Pustaka</span>
+                  <span className="sm:hidden">Pst</span>
+                </TabsTrigger>
               </TabsList>
 
               {/* Reservations Tab */}
@@ -1257,6 +1264,11 @@ export default function Admin() {
                     </Table>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              {/* Pustaka Tab */}
+              <TabsContent value="pustaka">
+                <PustakaManager userId={user?.id} searchTerm={searchTerm} />
               </TabsContent>
             </Tabs>
           </>

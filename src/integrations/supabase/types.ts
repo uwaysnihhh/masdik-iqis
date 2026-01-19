@@ -122,6 +122,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pustaka: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          description: string | null
+          file_url: string
+          id: string
+          is_active: boolean | null
+          thumbnail_url: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          description?: string | null
+          file_url: string
+          id?: string
+          is_active?: boolean | null
+          thumbnail_url?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          description?: string | null
+          file_url?: string
+          id?: string
+          is_active?: boolean | null
+          thumbnail_url?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reservations: {
         Row: {
           activity_type: string
