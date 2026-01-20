@@ -61,7 +61,8 @@ export function PustakaManager({ userId, searchTerm }: PustakaManagerProps) {
   const [description, setDescription] = useState("");
   const [type, setType] = useState("document");
   const [fileUrl, setFileUrl] = useState("");
-  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string>("");
   const [category, setCategory] = useState("");
   const [createdByName, setCreatedByName] = useState("");
 
@@ -79,16 +80,37 @@ export function PustakaManager({ userId, searchTerm }: PustakaManagerProps) {
     setIsLoading(false);
   };
 
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setThumbnailFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setThumbnailPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAdd = async () => {
     if (!title || !fileUrl) {
       toast({ title: "Judul dan URL file wajib diisi", variant: "destructive" });
       return;
     }
+    
+    let thumbnailUrl: string | null = null;
+    
+    // If thumbnail file is selected, convert to base64 URL for now
+    // In production, you would upload to Supabase Storage
+    if (thumbnailPreview) {
+      thumbnailUrl = thumbnailPreview;
+    }
+    
     const { data, error } = await supabase
       .from("pustaka")
       .insert({
         title, description: description || null, type, file_url: fileUrl,
-        thumbnail_url: thumbnailUrl || null, category: category || null,
+        thumbnail_url: thumbnailUrl, category: category || null,
         created_by: userId, created_by_name: createdByName || null,
       })
       .select()
@@ -109,7 +131,7 @@ export function PustakaManager({ userId, searchTerm }: PustakaManagerProps) {
 
   const resetForm = () => {
     setTitle(""); setDescription(""); setType("document");
-    setFileUrl(""); setThumbnailUrl(""); setCategory(""); setCreatedByName("");
+    setFileUrl(""); setThumbnailFile(null); setThumbnailPreview(""); setCategory(""); setCreatedByName("");
   };
 
   const getTypeIcon = (t: string) => t === "video" ? <Video className="w-4 h-4" /> : t === "audio" ? <Music className="w-4 h-4" /> : <FileText className="w-4 h-4" />;
@@ -135,7 +157,15 @@ export function PustakaManager({ userId, searchTerm }: PustakaManagerProps) {
               <div className="space-y-2"><Label>Judul <span className="text-destructive">*</span></Label><Input placeholder="Judul materi/video" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
               <div className="space-y-2"><Label>Tipe</Label><Select value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="document">Dokumen</SelectItem><SelectItem value="video">Video</SelectItem><SelectItem value="audio">Audio</SelectItem></SelectContent></Select></div>
               <div className="space-y-2"><Label>URL File/Video <span className="text-destructive">*</span></Label><Input placeholder="https://..." value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} /><p className="text-xs text-muted-foreground">Untuk video YouTube, gunakan link video.</p></div>
-              <div className="space-y-2"><Label>URL Thumbnail (opsional)</Label><Input placeholder="https://..." value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Thumbnail (opsional)</Label>
+                <Input type="file" accept="image/*" onChange={handleThumbnailChange} />
+                {thumbnailPreview && (
+                  <div className="mt-2">
+                    <img src={thumbnailPreview} alt="Preview" className="w-32 h-20 object-cover rounded border" />
+                  </div>
+                )}
+              </div>
               <div className="space-y-2"><Label>Kategori (opsional)</Label><Input placeholder="Fiqih, Akhlak, dll." value={category} onChange={(e) => setCategory(e.target.value)} /></div>
               <div className="space-y-2"><Label>Nama Pemateri (opsional)</Label><Input placeholder="Nama ustadz/pemateri" value={createdByName} onChange={(e) => setCreatedByName(e.target.value)} /></div>
               <div className="space-y-2"><Label>Keterangan (opsional)</Label><Textarea placeholder="Keterangan singkat" value={description} onChange={(e) => setDescription(e.target.value)} /></div>

@@ -171,6 +171,7 @@ export default function Admin() {
 
   // Delete confirmation dialogs
   const [deleteReservationId, setDeleteReservationId] = useState<string | null>(null);
+  const [deleteTransactionId, setDeleteTransactionId] = useState<string | null>(null);
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
 
   const { user, isAdmin, isLoading: authLoading, signOut } = useAuth();
@@ -387,6 +388,22 @@ export default function Admin() {
     setTxDescription("");
     setTxDialogOpen(false);
     toast({ title: "Transaksi Ditambahkan" });
+  };
+
+  const handleDeleteTransaction = async (id: string) => {
+    const { error } = await supabase
+      .from("transactions")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast({ title: "Gagal menghapus transaksi", variant: "destructive" });
+      return;
+    }
+
+    setTransactions(transactions.filter((t) => t.id !== id));
+    setDeleteTransactionId(null);
+    toast({ title: "Transaksi Dihapus" });
   };
 
   const handleAddEvent = async () => {
@@ -1008,12 +1025,13 @@ export default function Admin() {
                           <TableHead>Deskripsi</TableHead>
                           <TableHead>Tipe</TableHead>
                           <TableHead className="text-right">Jumlah</TableHead>
+                          <TableHead>Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredTransactions.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                               {searchTerm ? "Tidak ada transaksi yang cocok" : "Belum ada transaksi"}
                             </TableCell>
                           </TableRow>
@@ -1029,6 +1047,38 @@ export default function Admin() {
                               </TableCell>
                               <TableCell className={cn("text-right font-semibold text-sm", tx.type === "income" ? "text-green-600" : "text-red-600")}>
                                 {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount)}
+                              </TableCell>
+                              <TableCell>
+                                <Dialog open={deleteTransactionId === tx.id} onOpenChange={(open) => setDeleteTransactionId(open ? tx.id : null)}>
+                                  <DialogTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-destructive hover:text-destructive px-2"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Hapus Transaksi</DialogTitle>
+                                      <DialogDescription>
+                                        Apakah Anda yakin ingin menghapus transaksi "{tx.description}"? Tindakan ini tidak dapat dibatalkan.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter className="gap-2 sm:gap-0">
+                                      <Button variant="outline" onClick={() => setDeleteTransactionId(null)}>
+                                        Batal
+                                      </Button>
+                                      <Button 
+                                        variant="destructive" 
+                                        onClick={() => handleDeleteTransaction(tx.id)}
+                                      >
+                                        Hapus
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
                               </TableCell>
                             </TableRow>
                           ))
@@ -1172,7 +1222,7 @@ export default function Admin() {
                                 <SelectItem value="pengajian">Pengajian</SelectItem>
                                 <SelectItem value="sholat">Sholat</SelectItem>
                                 <SelectItem value="sosial">Sosial</SelectItem>
-                                <SelectItem value="lainnya">Lainnya</SelectItem>
+                                <SelectItem value="other">Lainnya</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
