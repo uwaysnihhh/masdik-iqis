@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Table,
   TableBody,
@@ -29,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, FileText, Video, Music, ExternalLink } from "lucide-react";
+import { Plus, Trash2, FileText, Video, Music, ExternalLink, Upload, Link } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -61,6 +62,9 @@ export function PustakaManager({ userId, searchTerm }: PustakaManagerProps) {
   const [description, setDescription] = useState("");
   const [type, setType] = useState("document");
   const [fileUrl, setFileUrl] = useState("");
+  const [fileInputMode, setFileInputMode] = useState<"url" | "file">("url");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFilePreview, setSelectedFilePreview] = useState<string>("");
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string>("");
   const [category, setCategory] = useState("");
@@ -92,10 +96,38 @@ export function PustakaManager({ userId, searchTerm }: PustakaManagerProps) {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedFilePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAdd = async () => {
-    if (!title || !fileUrl) {
-      toast({ title: "Judul dan URL file wajib diisi", variant: "destructive" });
+    if (!title) {
+      toast({ title: "Judul wajib diisi", variant: "destructive" });
       return;
+    }
+    
+    let finalFileUrl = fileUrl;
+    
+    // If file mode is selected, use the file preview URL
+    if (fileInputMode === "file") {
+      if (!selectedFilePreview) {
+        toast({ title: "Pilih file terlebih dahulu", variant: "destructive" });
+        return;
+      }
+      finalFileUrl = selectedFilePreview;
+    } else {
+      if (!fileUrl) {
+        toast({ title: "URL file wajib diisi", variant: "destructive" });
+        return;
+      }
     }
     
     let thumbnailUrl: string | null = null;
@@ -109,7 +141,7 @@ export function PustakaManager({ userId, searchTerm }: PustakaManagerProps) {
     const { data, error } = await supabase
       .from("pustaka")
       .insert({
-        title, description: description || null, type, file_url: fileUrl,
+        title, description: description || null, type, file_url: finalFileUrl,
         thumbnail_url: thumbnailUrl, category: category || null,
         created_by: userId, created_by_name: createdByName || null,
       })
@@ -131,7 +163,8 @@ export function PustakaManager({ userId, searchTerm }: PustakaManagerProps) {
 
   const resetForm = () => {
     setTitle(""); setDescription(""); setType("document");
-    setFileUrl(""); setThumbnailFile(null); setThumbnailPreview(""); setCategory(""); setCreatedByName("");
+    setFileUrl(""); setFileInputMode("url"); setSelectedFile(null); setSelectedFilePreview("");
+    setThumbnailFile(null); setThumbnailPreview(""); setCategory(""); setCreatedByName("");
   };
 
   const getTypeIcon = (t: string) => t === "video" ? <Video className="w-4 h-4" /> : t === "audio" ? <Music className="w-4 h-4" /> : <FileText className="w-4 h-4" />;
@@ -156,7 +189,36 @@ export function PustakaManager({ userId, searchTerm }: PustakaManagerProps) {
             <div className="space-y-4 py-4">
               <div className="space-y-2"><Label>Judul <span className="text-destructive">*</span></Label><Input placeholder="Judul materi/video" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
               <div className="space-y-2"><Label>Tipe</Label><Select value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="document">Dokumen</SelectItem><SelectItem value="video">Video</SelectItem><SelectItem value="audio">Audio</SelectItem></SelectContent></Select></div>
-              <div className="space-y-2"><Label>URL File/Video <span className="text-destructive">*</span></Label><Input placeholder="https://..." value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} /><p className="text-xs text-muted-foreground">Untuk video YouTube, gunakan link video.</p></div>
+              
+              {/* File URL or Upload option */}
+              <div className="space-y-3">
+                <Label>URL File/Video <span className="text-destructive">*</span></Label>
+                <RadioGroup value={fileInputMode} onValueChange={(v) => setFileInputMode(v as "url" | "file")} className="flex gap-4">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="url" id="url-mode" />
+                    <Label htmlFor="url-mode" className="flex items-center gap-1 cursor-pointer"><Link className="w-4 h-4" />URL</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="file" id="file-mode" />
+                    <Label htmlFor="file-mode" className="flex items-center gap-1 cursor-pointer"><Upload className="w-4 h-4" />Upload File</Label>
+                  </div>
+                </RadioGroup>
+                
+                {fileInputMode === "url" ? (
+                  <div>
+                    <Input placeholder="https://..." value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} />
+                    <p className="text-xs text-muted-foreground mt-1">Untuk video YouTube, gunakan link video.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <Input type="file" accept={type === "video" ? "video/*" : type === "audio" ? "audio/*" : ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"} onChange={handleFileChange} />
+                    {selectedFile && (
+                      <p className="text-xs text-muted-foreground mt-1">File dipilih: {selectedFile.name}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              
               <div className="space-y-2">
                 <Label>Thumbnail (opsional)</Label>
                 <Input type="file" accept="image/*" onChange={handleThumbnailChange} />

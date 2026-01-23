@@ -111,7 +111,7 @@ export function PrayerTimes() {
   const checkCurrentActivity = (timeStr: string) => {
     const now = parse(timeStr.replace(/\./g, ":").substring(0, 5), "HH:mm", new Date());
 
-    // Check activities - show description (keterangan kegiatan) instead of title
+    // Check activities - show title (judul kegiatan)
     for (const activity of activities) {
       if (!activity.event_time) continue;
       
@@ -121,9 +121,8 @@ export function PrayerTimes() {
         : new Date(startTime.getTime() + 2 * 60 * 60 * 1000); // Default 2 hours
 
       if (isWithinInterval(now, { start: startTime, end: endTime })) {
-        // Show description (keterangan kegiatan) if available, otherwise show title
-        const displayTitle = activity.description || activity.title;
-        return { title: displayTitle, type: activity.type };
+        // Show title (judul kegiatan)
+        return { title: activity.title, type: activity.type };
       }
     }
 
