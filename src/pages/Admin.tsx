@@ -169,6 +169,9 @@ export default function Admin() {
   // View booking dialog
   const [viewBooking, setViewBooking] = useState<Booking | null>(null);
 
+  // View event detail dialog
+  const [viewEvent, setViewEvent] = useState<Event | null>(null);
+
   // Delete confirmation dialogs
   const [deleteReservationId, setDeleteReservationId] = useState<string | null>(null);
   const [deleteTransactionId, setDeleteTransactionId] = useState<string | null>(null);
@@ -1277,39 +1280,92 @@ export default function Admin() {
                                   <Badge variant="outline">{event.type}</Badge>
                                 </TableCell>
                                 <TableCell>
-                                  <Dialog open={deleteEventId === event.id} onOpenChange={(open) => setDeleteEventId(open ? event.id : null)}>
-                                    <DialogTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="text-destructive hover:text-destructive px-2"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                      <DialogHeader>
-                                        <DialogTitle>Hapus Kegiatan</DialogTitle>
-                                        <DialogDescription>
-                                          Apakah Anda yakin ingin menghapus kegiatan "{event.title}"? Tindakan ini tidak dapat dibatalkan.
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      <DialogFooter className="gap-2 sm:gap-0">
-                                        <Button variant="outline" onClick={() => setDeleteEventId(null)}>
-                                          Batal
-                                        </Button>
-                                        <Button 
-                                          variant="destructive" 
-                                          onClick={() => {
-                                            handleDeleteEvent(event.id);
-                                            setDeleteEventId(null);
-                                          }}
+                                  <div className="flex gap-1">
+                                    {/* View Detail Button */}
+                                    <Dialog open={viewEvent?.id === event.id} onOpenChange={(open) => setViewEvent(open ? event : null)}>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="px-2"
                                         >
-                                          Hapus
+                                          <Eye className="w-4 h-4" />
                                         </Button>
-                                      </DialogFooter>
-                                    </DialogContent>
-                                  </Dialog>
+                                      </DialogTrigger>
+                                      <DialogContent>
+                                        <DialogHeader>
+                                          <DialogTitle>Detail Kegiatan</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="space-y-4">
+                                          <div>
+                                            <Label className="text-muted-foreground text-xs">Judul Kegiatan</Label>
+                                            <p className="font-medium">{event.title}</p>
+                                          </div>
+                                          <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                              <Label className="text-muted-foreground text-xs">Tanggal</Label>
+                                              <p className="font-medium">{event.event_date}</p>
+                                            </div>
+                                            <div>
+                                              <Label className="text-muted-foreground text-xs">Waktu</Label>
+                                              <p className="font-medium">
+                                                {event.event_time || "-"}
+                                                {event.event_end_time && ` - ${event.event_end_time}`}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div>
+                                            <Label className="text-muted-foreground text-xs">Tipe Kegiatan</Label>
+                                            <p><Badge variant="outline">{event.type}</Badge></p>
+                                          </div>
+                                          <div>
+                                            <Label className="text-muted-foreground text-xs">Keterangan</Label>
+                                            <p className="font-medium whitespace-pre-wrap">{event.description || "-"}</p>
+                                          </div>
+                                        </div>
+                                        <DialogFooter>
+                                          <Button variant="outline" onClick={() => setViewEvent(null)}>
+                                            Tutup
+                                          </Button>
+                                        </DialogFooter>
+                                      </DialogContent>
+                                    </Dialog>
+                                    
+                                    {/* Delete Button */}
+                                    <Dialog open={deleteEventId === event.id} onOpenChange={(open) => setDeleteEventId(open ? event.id : null)}>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-destructive hover:text-destructive px-2"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent>
+                                        <DialogHeader>
+                                          <DialogTitle>Hapus Kegiatan</DialogTitle>
+                                          <DialogDescription>
+                                            Apakah Anda yakin ingin menghapus kegiatan "{event.title}"? Tindakan ini tidak dapat dibatalkan.
+                                          </DialogDescription>
+                                        </DialogHeader>
+                                        <DialogFooter className="gap-2 sm:gap-0">
+                                          <Button variant="outline" onClick={() => setDeleteEventId(null)}>
+                                            Batal
+                                          </Button>
+                                          <Button 
+                                            variant="destructive" 
+                                            onClick={() => {
+                                              handleDeleteEvent(event.id);
+                                              setDeleteEventId(null);
+                                            }}
+                                          >
+                                            Hapus
+                                          </Button>
+                                        </DialogFooter>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                           ))

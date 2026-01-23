@@ -2,8 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Kegiatan from "./pages/Kegiatan";
 import ETaklim from "./pages/ETaklim";
@@ -16,6 +16,28 @@ import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+// Protected Route wrapper that redirects to login if not authenticated
+function AdminRoute() {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Navigate to="/admin-login" replace />;
+  }
+  
+  return <Admin />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -32,7 +54,7 @@ const App = () => (
             <Route path="/layanan" element={<Layanan />} />
             <Route path="/struktur" element={<Struktur />} />
             <Route path="/saldo" element={<Saldo />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin" element={<AdminRoute />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
