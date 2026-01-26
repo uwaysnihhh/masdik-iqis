@@ -156,7 +156,7 @@ export function BookingForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.phone || !formData.activity || !date || !time || !formData.description) {
+    if (!formData.name || !formData.phone || !formData.email || !formData.activity || !date || !time || !formData.description) {
       toast({
         title: "Form Tidak Lengkap",
         description: "Mohon lengkapi semua field yang diperlukan",
@@ -251,7 +251,7 @@ export function BookingForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Nomor Telepon *</Label>
+              <Label htmlFor="phone">Nomor WhatsApp *</Label>
               <Input
                 id="phone"
                 placeholder="08xxxxxxxxxx"
@@ -264,7 +264,7 @@ export function BookingForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email *</Label>
             <Input
               id="email"
               type="email"
@@ -273,6 +273,7 @@ export function BookingForm() {
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
+              required
             />
           </div>
 
