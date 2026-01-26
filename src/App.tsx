@@ -17,10 +17,11 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Protected Route wrapper that redirects to login if not authenticated
+// Protected Route wrapper that redirects to login if not authenticated or not admin
 function AdminRoute() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isAdmin } = useAuth();
   
+  // Show loading while checking auth status
   if (isLoading) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center">
@@ -32,7 +33,13 @@ function AdminRoute() {
     );
   }
   
+  // Redirect to login if not authenticated
   if (!user) {
+    return <Navigate to="/admin-login" replace />;
+  }
+  
+  // Redirect to login if authenticated but not admin
+  if (!isAdmin) {
     return <Navigate to="/admin-login" replace />;
   }
   
