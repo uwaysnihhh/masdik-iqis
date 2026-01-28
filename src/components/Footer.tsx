@@ -125,7 +125,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-background/10 mt-8 pt-8 pb-4 text-center text-sm text-background/50">
-          <p>© 2025 Masjid Pendidikan Ibnul Qayyim Makassar. Hak Cipta Dilindungi.</p>
+          <p>© 2025 Masjid Pendidikan Ibnul Qayyim Makassar. Created By Uways.</p>
         </div>
       </div>
     </footer>
