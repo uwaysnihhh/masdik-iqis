@@ -1,0 +1,41 @@
+name: Deploy Website to FTP by Numan
+
+on:
+  push:
+    branches:
+      - main # Script akan jalan setiap kali Anda push ke branch main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 🏗️ Build Project
+        run: npm run build
+        # Vite secara default menghasilkan output di folder /dist
+
+      - name: 🚀 Sync files to FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          # Folder hasil build Vite
+          local-dir: ./dist/ 
+          # Folder tujuan di server
+          server-dir: /www/wwwroot/masdik.iqis.sch.id/
+          # Menghapus file di server yang sudah tidak ada di lokal (opsional)
+          dangerous-clean-slate: false
