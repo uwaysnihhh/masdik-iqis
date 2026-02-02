@@ -19,6 +19,13 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      - name: 📝 Create .env file
+        run: |
+          touch .env
+          echo "VITE_SUPABASE_PROJECT_ID=${{ secrets.VITE_SUPABASE_PROJECT_ID }}" >> .env
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}" >> .env
+          echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> .env
+
       - name: 📦 Install dependencies
         run: npm install
 
