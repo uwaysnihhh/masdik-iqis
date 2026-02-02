@@ -36,6 +36,6 @@ jobs:
           # Folder hasil build Vite
           local-dir: ./dist/ 
           # Folder tujuan di server
-          server-dir: /www/wwwroot/masdik.iqis.sch.id/
+          server-dir: ./
           # Menghapus file di server yang sudah tidak ada di lokal (opsional)
           dangerous-clean-slate: false
