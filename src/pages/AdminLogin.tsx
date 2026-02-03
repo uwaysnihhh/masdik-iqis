@@ -57,7 +57,7 @@ export default function AdminLogin() {
             <img
               src={logoMasjid}
               alt="Logo MASDIK IQIS"
-              className="w-20 h-20 object-contain border-2 border-primary rounded-lg p-1"
+              className="w-20 h-20 object-contain"
             />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Admin Login</h1>

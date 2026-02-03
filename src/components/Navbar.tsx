@@ -33,7 +33,7 @@ export function Navbar() {
             <img 
               src={logoMasjid} 
               alt="Logo Masjid Pendidikan Ibnul Qayyim" 
-              className="w-10 h-10 lg:w-12 lg:h-12 object-contain border-2 border-primary rounded-lg p-0.5"
+              className="w-10 h-10 lg:w-12 lg:h-12 object-contain"
             />
             <div className="hidden sm:block">
               <h1 className="font-bold text-foreground text-sm lg:text-base">MASDIK IQIS</h1>
