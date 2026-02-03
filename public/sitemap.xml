@@ -5,44 +5,44 @@
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"
         xmlns:url="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://masdikiqis.or.id/</loc>
-    <lastmod>2026-02-02</lastmod>
+    <loc>https://masdik.iqis.sch.id/</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://masdikiqis.or.id/kegiatan</loc>
-    <lastmod>2026-02-02</lastmod>
+    <loc>https://masdik.iqis.sch.id/kegiatan</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://masdikiqis.or.id/e-taklim</loc>
-    <lastmod>2026-02-02</lastmod>
+    <loc>https://masdik.iqis.sch.id/e-taklim</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://masdikiqis.or.id/pustaka</loc>
-    <lastmod>2026-02-02</lastmod>
+    <loc>https://masdik.iqis.sch.id/pustaka</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://masdikiqis.or.id/layanan</loc>
-    <lastmod>2026-02-02</lastmod>
+    <loc>https://masdik.iqis.sch.id/layanan</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://masdikiqis.or.id/struktur</loc>
-    <lastmod>2026-02-02</lastmod>
+    <loc>https://masdik.iqis.sch.id/struktur</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://masdikiqis.or.id/saldo</loc>
-    <lastmod>2026-02-02</lastmod>
+    <loc>https://masdik.iqis.sch.id/saldo</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
