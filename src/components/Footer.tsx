@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { MapPin, Phone, Mail } from "lucide-react";
-import logoMasjid from "@/assets/logo-masjid.png";
+import logoMasjidWhite from "@/assets/logo-masjid-white.png";
 
 interface PrayerTimeData {
   name: string;
@@ -57,9 +57,9 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-3 mb-4">
               <img 
-                src={logoMasjid} 
+                src={logoMasjidWhite} 
                 alt="Logo MASDIK IQIS" 
-                className="w-12 h-12 object-contain border-2 border-background/30 rounded-lg p-0.5"
+                className="w-12 h-12 object-contain"
               />
               <div>
                 <h3 className="font-bold text-lg">MASDIK IQIS</h3>

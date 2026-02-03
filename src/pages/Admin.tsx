@@ -337,9 +337,12 @@ export default function Admin() {
       return;
     }
 
+    // Remove thousand separators before parsing
+    const numericAmount = parseInt(txAmount.replace(/\./g, ""));
+    
     const { data, error } = await supabase.from("transactions").insert({
       type: txType,
-      amount: parseInt(txAmount),
+      amount: numericAmount,
       description: txDescription,
       created_by: user?.id,
     }).select().single();
@@ -1003,10 +1006,17 @@ export default function Admin() {
                           <div className="space-y-2">
                             <Label>Jumlah (Rp)</Label>
                             <Input
-                              type="number"
+                              type="text"
+                              inputMode="numeric"
                               placeholder="0"
                               value={txAmount}
-                              onChange={(e) => setTxAmount(e.target.value)}
+                              onChange={(e) => {
+                                // Remove all non-numeric characters
+                                const numericValue = e.target.value.replace(/\D/g, "");
+                                // Format with thousand separators
+                                const formattedValue = numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                                setTxAmount(formattedValue);
+                              }}
                             />
                           </div>
                           <div className="space-y-2">
