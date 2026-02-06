@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, parse, isWithinInterval } from "date-fns";
 import { id } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { Wallet, TrendingUp, TrendingDown, Calendar, Clock } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, Calendar, Clock, Sparkles } from "lucide-react";
 import logoMasjid from "@/assets/logo-masjid-white.png";
 
 interface PrayerTime {
@@ -131,7 +131,7 @@ export default function Display() {
         .eq("is_active", true)
         .order("event_date", { ascending: true })
         .order("event_time", { ascending: true })
-        .limit(5);
+        .limit(4);
       if (data) setUpcomingActivities(data);
     };
     fetchActivities();
@@ -160,7 +160,6 @@ export default function Display() {
 
       const nowTime = parse(currentTimeStr, "HH:mm", new Date());
 
-      // Check activities
       for (const activity of activities || []) {
         if (!activity.event_time) continue;
         const startTime = parse(activity.event_time, "HH:mm", new Date());
@@ -173,7 +172,6 @@ export default function Display() {
         }
       }
 
-      // Check reservations
       for (const reservation of reservations || []) {
         const startTime = parse(reservation.reservation_time, "HH:mm", new Date());
         const endTime = reservation.reservation_end_time
@@ -231,65 +229,104 @@ export default function Display() {
   const currentQuote = islamicQuotes[currentQuoteIndex];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary via-primary/95 to-primary/90 text-primary-foreground p-8 overflow-hidden">
-      {/* Decorative Pattern */}
-      <div className="fixed inset-0 islamic-pattern opacity-10 pointer-events-none" />
+    <div className="min-h-screen bg-background overflow-hidden relative">
+      {/* Background Pattern */}
+      <div className="fixed inset-0 islamic-pattern opacity-30 pointer-events-none" />
+      
+      {/* Gradient Overlay */}
+      <div className="fixed inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
 
-      <div className="relative z-10 h-full flex flex-col gap-6">
+      <div className="relative z-10 h-screen flex flex-col p-6 lg:p-8">
         {/* Header */}
-        <header className="flex items-center justify-between">
+        <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <img src={logoMasjid} alt="Logo Masjid" className="h-16 w-auto" />
+            <div className="w-16 h-16 rounded-2xl gradient-islamic flex items-center justify-center shadow-islamic">
+              <img src={logoMasjid} alt="Logo Masjid" className="h-10 w-auto" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold">Masjid Pendidikan Ibnul Qayyim</h1>
-              <p className="text-primary-foreground/70">SMP-SMA Islam Athirah Boarding School</p>
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                Masjid Pendidikan <span className="text-primary">Ibnul Qayyim</span>
+              </h1>
+              <p className="text-muted-foreground text-sm">SMP-SMA Islam Athirah Boarding School</p>
             </div>
           </div>
+          
+          {/* Time & Date */}
           <div className="text-right">
-            <p className="text-lg text-primary-foreground/70">{currentDate}</p>
-            <p className="text-5xl font-bold font-mono tracking-wider">{currentTime}</p>
+            <p className="text-muted-foreground text-sm">{currentDate}</p>
+            <p className="text-5xl lg:text-6xl font-bold text-foreground font-mono tracking-wider">
+              {currentTime}
+            </p>
           </div>
         </header>
 
         {/* Main Content */}
-        <div className="flex-1 grid grid-cols-3 gap-6">
+        <div className="flex-1 grid grid-cols-12 gap-6">
           {/* Left Column - Prayer Times */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Clock className="w-6 h-6" />
-              Jadwal Shalat
-            </h2>
-            <div className="space-y-3">
-              {prayerData.map((prayer) => (
-                <div
-                  key={prayer.name}
-                  className={cn(
-                    "p-4 rounded-2xl transition-all duration-500 flex items-center justify-between",
-                    activePrayer === prayer.name
-                      ? "bg-accent text-accent-foreground shadow-gold scale-105"
-                      : "bg-primary-foreground/10 backdrop-blur-sm"
-                  )}
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="font-arabic text-3xl">{prayer.nameArabic}</span>
-                    <span className="text-xl font-medium">{prayer.name}</span>
+          <div className="col-span-4 flex flex-col gap-4">
+            <div className="bg-card rounded-2xl shadow-islamic border border-border overflow-hidden">
+              <div className="gradient-islamic p-4">
+                <h2 className="text-xl font-bold text-primary-foreground flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Jadwal Shalat Hari Ini
+                </h2>
+              </div>
+              <div className="p-4 space-y-3">
+                {prayerData.map((prayer) => (
+                  <div
+                    key={prayer.name}
+                    className={cn(
+                      "relative p-4 rounded-xl transition-all duration-500 flex items-center justify-between",
+                      activePrayer === prayer.name
+                        ? "gradient-gold shadow-gold scale-[1.02]"
+                        : "bg-secondary hover:bg-secondary/80"
+                    )}
+                  >
+                    {activePrayer === prayer.name && (
+                      <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-accent-foreground animate-pulse" />
+                    )}
+                    <div className="flex items-center gap-3">
+                      <span className={cn(
+                        "font-arabic text-2xl",
+                        activePrayer === prayer.name ? "text-accent-foreground" : "text-primary"
+                      )}>
+                        {prayer.nameArabic}
+                      </span>
+                      <span className={cn(
+                        "text-lg font-medium",
+                        activePrayer === prayer.name ? "text-accent-foreground" : "text-foreground"
+                      )}>
+                        {prayer.name}
+                      </span>
+                    </div>
+                    <span className={cn(
+                      "text-2xl font-bold font-mono",
+                      activePrayer === prayer.name ? "text-accent-foreground" : "text-primary"
+                    )}>
+                      {prayer.time}
+                    </span>
                   </div>
-                  <span className="text-3xl font-bold font-mono">{prayer.time}</span>
-                  {activePrayer === prayer.name && (
-                    <span className="absolute right-2 top-2 w-3 h-3 bg-accent rounded-full animate-pulse" />
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            {/* Current Activity Indicator */}
+            {/* Current Activity/Prayer Indicator */}
             {(activePrayer || currentActivity) && (
-              <div className="mt-4 p-4 rounded-2xl bg-accent/20 backdrop-blur-sm border border-accent/30">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-accent animate-pulse" />
-                  <span className="text-lg">
+              <div className={cn(
+                "p-4 rounded-2xl border animate-fade-in",
+                activePrayer ? "gradient-gold border-accent shadow-gold" : "bg-primary/10 border-primary/20"
+              )}>
+                <div className="flex items-center gap-3">
+                  <span className={cn(
+                    "w-3 h-3 rounded-full animate-pulse",
+                    activePrayer ? "bg-accent-foreground" : "bg-primary"
+                  )} />
+                  <span className={cn(
+                    "text-lg font-medium",
+                    activePrayer ? "text-accent-foreground" : "text-foreground"
+                  )}>
                     {activePrayer ? (
-                      <>Waktu Shalat <strong>{activePrayer}</strong> sedang berlangsung</>
+                      <>Waktu Shalat <strong>{activePrayer}</strong> berlangsung</>
                     ) : (
                       <><strong>{currentActivity}</strong> sedang berlangsung</>
                     )}
@@ -299,85 +336,129 @@ export default function Display() {
             )}
           </div>
 
-          {/* Center Column - Islamic Quote & Saldo */}
-          <div className="space-y-6">
+          {/* Center Column - Quote & Saldo */}
+          <div className="col-span-4 flex flex-col gap-4">
             {/* Islamic Quote */}
-            <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-6 text-center">
-              <p className="font-arabic text-4xl leading-relaxed mb-4">{currentQuote.arabic}</p>
-              <p className="text-xl text-primary-foreground/90 mb-2">"{currentQuote.translation}"</p>
-              <p className="text-sm text-primary-foreground/60">{currentQuote.source}</p>
+            <div className="flex-1 bg-card rounded-2xl shadow-islamic border border-border overflow-hidden flex flex-col">
+              <div className="gradient-gold p-4">
+                <h2 className="text-lg font-bold text-accent-foreground flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" />
+                  Mutiara Hikmah
+                </h2>
+              </div>
+              <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
+                <p className="font-arabic text-4xl lg:text-5xl leading-relaxed text-primary mb-6 animate-fade-in" key={currentQuoteIndex}>
+                  {currentQuote.arabic}
+                </p>
+                <p className="text-xl text-foreground mb-3">"{currentQuote.translation}"</p>
+                <p className="text-sm text-muted-foreground font-medium">{currentQuote.source}</p>
+              </div>
             </div>
 
             {/* Saldo Info */}
-            <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-6">
-              <h2 className="text-2xl font-bold flex items-center gap-2 mb-4">
-                <Wallet className="w-6 h-6" />
-                Informasi Keuangan
-              </h2>
-              <div className="text-center mb-4">
-                <p className="text-primary-foreground/70 text-sm">Saldo Masjid</p>
-                <p className="text-4xl font-bold">{formatCurrency(totalSaldo)}</p>
+            <div className="bg-card rounded-2xl shadow-islamic border border-border overflow-hidden">
+              <div className="gradient-islamic p-4">
+                <h2 className="text-lg font-bold text-primary-foreground flex items-center gap-2">
+                  <Wallet className="w-5 h-5" />
+                  Informasi Keuangan Masjid
+                </h2>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-primary-foreground/10 rounded-xl p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 text-primary-foreground/70 text-sm mb-1">
-                    <TrendingUp className="w-4 h-4" />
-                    Pemasukan
-                  </div>
-                  <p className="text-xl font-bold">{formatCurrency(totalIncome)}</p>
+              <div className="p-4">
+                <div className="text-center mb-4 p-4 bg-secondary rounded-xl">
+                  <p className="text-sm text-muted-foreground mb-1">Total Saldo</p>
+                  <p className="text-3xl font-bold text-primary">{formatCurrency(totalSaldo)}</p>
                 </div>
-                <div className="bg-primary-foreground/10 rounded-xl p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 text-primary-foreground/70 text-sm mb-1">
-                    <TrendingDown className="w-4 h-4" />
-                    Pengeluaran
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-primary/10 rounded-xl p-3 text-center border border-primary/20">
+                    <div className="flex items-center justify-center gap-1.5 text-primary text-sm mb-1">
+                      <TrendingUp className="w-4 h-4" />
+                      Pemasukan
+                    </div>
+                    <p className="text-lg font-bold text-primary">{formatCurrency(totalIncome)}</p>
                   </div>
-                  <p className="text-xl font-bold">{formatCurrency(totalExpense)}</p>
+                  <div className="bg-destructive/10 rounded-xl p-3 text-center border border-destructive/20">
+                    <div className="flex items-center justify-center gap-1.5 text-destructive text-sm mb-1">
+                      <TrendingDown className="w-4 h-4" />
+                      Pengeluaran
+                    </div>
+                    <p className="text-lg font-bold text-destructive">{formatCurrency(totalExpense)}</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Right Column - Upcoming Activities */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Calendar className="w-6 h-6" />
-              Kegiatan Akan Datang
-            </h2>
-            <div className="space-y-3">
-              {upcomingActivities.length === 0 ? (
-                <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-6 text-center text-primary-foreground/60">
-                  Belum ada kegiatan terjadwal
-                </div>
-              ) : (
-                upcomingActivities.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <p className="text-lg font-semibold">{activity.title}</p>
-                        <p className="text-primary-foreground/70 text-sm capitalize">{activity.type}</p>
-                      </div>
-                      <div className="text-right text-sm">
-                        <p className="font-medium">
-                          {format(new Date(activity.event_date), "d MMM", { locale: id })}
-                        </p>
-                        {activity.event_time && (
-                          <p className="text-primary-foreground/70">{activity.event_time}</p>
-                        )}
-                      </div>
+          <div className="col-span-4 flex flex-col">
+            <div className="flex-1 bg-card rounded-2xl shadow-islamic border border-border overflow-hidden flex flex-col">
+              <div className="bg-secondary p-4 border-b border-border">
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  Kegiatan Akan Datang
+                </h2>
+              </div>
+              <div className="flex-1 p-4">
+                {upcomingActivities.length === 0 ? (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>Belum ada kegiatan terjadwal</p>
                     </div>
                   </div>
-                ))
-              )}
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingActivities.map((activity, index) => (
+                      <div
+                        key={activity.id}
+                        className={cn(
+                          "p-4 rounded-xl border transition-all hover:shadow-md",
+                          index === 0 
+                            ? "bg-primary/5 border-primary/20" 
+                            : "bg-secondary border-transparent"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <p className={cn(
+                              "text-lg font-semibold",
+                              index === 0 ? "text-primary" : "text-foreground"
+                            )}>
+                              {activity.title}
+                            </p>
+                            <span className={cn(
+                              "inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium capitalize",
+                              index === 0 
+                                ? "bg-primary/20 text-primary" 
+                                : "bg-muted text-muted-foreground"
+                            )}>
+                              {activity.type}
+                            </span>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className={cn(
+                              "font-bold",
+                              index === 0 ? "text-primary" : "text-foreground"
+                            )}>
+                              {format(new Date(activity.event_date), "d MMM", { locale: id })}
+                            </p>
+                            {activity.event_time && (
+                              <p className="text-sm text-muted-foreground">{activity.event_time}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <footer className="text-center text-primary-foreground/50 text-sm">
-          <p>masdik.iqis.sch.id</p>
+        <footer className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+          <p>Jl. Taman Bunga Sudiang, Makassar</p>
+          <p className="font-medium text-primary">masdik.iqis.sch.id</p>
         </footer>
       </div>
     </div>
