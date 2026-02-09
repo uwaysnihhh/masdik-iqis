@@ -11,6 +11,7 @@ import {
   Clock,
   Heart,
 } from "lucide-react";
+import logoMasjid from "@/assets/logo-masjid.png";
 import logoWhite from "@/assets/logo-masjid-white.png";
 
 // ── Types ──
@@ -151,7 +152,7 @@ export default function Display() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [upcomingActivities, setUpcomingActivities] = useState<Activity[]>([]);
   const [quoteIndex, setQuoteIndex] = useState(0);
-  const [sedekahIndex, setSedekahIndex] = useState(0);
+  
   const [iqamahState, setIqamahState] = useState<{
     active: boolean;
     prayerName: string;
@@ -222,12 +223,7 @@ export default function Display() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSedekahIndex((prev) => (prev + 1) % sedekahQuotes.length);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  
 
   // Clock + iqamah detection
   useEffect(() => {
@@ -328,25 +324,25 @@ export default function Display() {
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-hidden">
       {/* ── Header ── */}
-      <header className="gradient-islamic relative overflow-hidden">
-        <div className="absolute inset-0 islamic-pattern opacity-20" />
+      <header className="bg-card relative overflow-hidden border-b border-border">
+        <div className="absolute inset-0 islamic-pattern opacity-10" />
         <div className="relative z-10 flex items-center justify-between px-8 py-4">
           <div className="flex items-center gap-4">
-            <img src={logoWhite} alt="Logo Masjid" className="w-14 h-14" />
+            <img src={logoMasjid} alt="Logo Masjid" className="w-14 h-14" />
             <div>
-              <h1 className="text-2xl font-bold text-primary-foreground">
-                Masjid Pendidikan Ibnul Qayyim
+              <h1 className="text-2xl font-bold text-foreground">
+                MASDIK IQIS
               </h1>
-              <p className="text-primary-foreground/70 text-sm">
-                Pondok Pesantren IMMIM Putra Makassar
+              <p className="text-muted-foreground text-sm">
+                Masjid Pendidikan Ibnul Qayyim Makassar
               </p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-4xl font-bold font-mono text-primary-foreground tracking-wider">
+            <p className="text-4xl font-bold font-mono text-primary tracking-wider">
               {currentTime}
             </p>
-            <p className="text-primary-foreground/70 text-sm">{currentDate}</p>
+            <p className="text-muted-foreground text-sm">{currentDate}</p>
           </div>
         </div>
       </header>
@@ -513,31 +509,34 @@ export default function Display() {
       <footer className="gradient-gold relative overflow-hidden">
         <div className="absolute inset-0 islamic-pattern opacity-10" />
         <div className="relative z-10 px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-accent-foreground/10 flex items-center justify-center">
-              <Heart className="w-5 h-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p
-                key={sedekahIndex}
-                className="text-base font-semibold text-accent-foreground animate-fade-in"
-              >
-                {sedekahQuotes[sedekahIndex]}
-              </p>
+          <div className="flex-1 overflow-hidden mr-6">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-accent-foreground/10 flex items-center justify-center flex-shrink-0">
+                <Heart className="w-5 h-5 text-accent-foreground" />
+              </div>
+              <div className="overflow-hidden flex-1">
+                <div className="animate-marquee whitespace-nowrap">
+                  {sedekahQuotes.map((quote, i) => (
+                    <span key={i} className="text-base font-semibold text-accent-foreground mx-8">
+                      {quote}
+                    </span>
+                  ))}
+                  {sedekahQuotes.map((quote, i) => (
+                    <span key={`dup-${i}`} className="text-base font-semibold text-accent-foreground mx-8">
+                      {quote}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 flex-shrink-0">
             <div className="text-right">
               <p className="text-xs text-accent-foreground/70">Bank Syariah Indonesia (BSI)</p>
               <p className="text-xl font-bold font-mono text-accent-foreground">7301136287</p>
               <p className="text-xs text-accent-foreground/70">
                 a.n. Msjd Pendidikan Ibnul Qayyim
               </p>
-            </div>
-            <div className="h-12 w-px bg-accent-foreground/20" />
-            <div className="text-right">
-              <p className="text-xs text-accent-foreground/70">QRIS</p>
-              <p className="text-sm font-semibold text-accent-foreground">Scan untuk berinfaq</p>
             </div>
           </div>
         </div>
