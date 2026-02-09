@@ -11,7 +11,7 @@ import Pustaka from "./pages/Pustaka";
 import Layanan from "./pages/Layanan";
 import Struktur from "./pages/Struktur";
 import Saldo from "./pages/Saldo";
-
+import Display from "./pages/Display";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
@@ -62,6 +62,7 @@ const App = () => (
             <Route path="/layanan" element={<Layanan />} />
             <Route path="/struktur" element={<Struktur />} />
             <Route path="/saldo" element={<Saldo />} />
+            <Route path="/display" element={<Display />} />
             
             <Route path="/admin" element={<AdminRoute />} />
             <Route path="/admin-login" element={<AdminLogin />} />
