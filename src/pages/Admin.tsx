@@ -1157,7 +1157,11 @@ export default function Admin() {
                                     setEventTime("");
                                     setEventEndTime("");
                                   }}
-                                  disabled={(day) => day < new Date()}
+                                   disabled={(day) => {
+                                     const today = new Date();
+                                     today.setHours(0, 0, 0, 0);
+                                     return day < today;
+                                   }}
                                   modifiers={{
                                     hasBooking: (day) => hasBookingsOnDate(day),
                                   }}
