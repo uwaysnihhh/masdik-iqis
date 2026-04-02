@@ -1304,8 +1304,6 @@ export default function Admin() {
                               />
                             </div>
                           )}
-                            </Select>
-                          </div>
                           <div className="space-y-2">
                             <Label>Keterangan Kegiatan <span className="text-destructive">*</span></Label>
                             <Textarea
