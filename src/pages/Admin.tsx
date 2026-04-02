@@ -1401,6 +1401,24 @@ export default function Admin() {
                                             <Label className="text-muted-foreground text-xs">Tipe Kegiatan</Label>
                                             <p><Badge variant="outline">{event.type}</Badge></p>
                                           </div>
+                                          {event.speaker_name && (
+                                            <div>
+                                              <Label className="text-muted-foreground text-xs">Pemateri</Label>
+                                              <p className="font-medium">{event.speaker_name}</p>
+                                            </div>
+                                          )}
+                                          {event.topic && (
+                                            <div>
+                                              <Label className="text-muted-foreground text-xs">Materi</Label>
+                                              <p className="font-medium">{event.topic}</p>
+                                            </div>
+                                          )}
+                                          {event.total_sessions && (
+                                            <div>
+                                              <Label className="text-muted-foreground text-xs">Jumlah Sesi</Label>
+                                              <p className="font-medium">{event.total_sessions} sesi</p>
+                                            </div>
+                                          )}
                                           <div>
                                             <Label className="text-muted-foreground text-xs">Keterangan</Label>
                                             <p className="font-medium whitespace-pre-wrap">{event.description || "-"}</p>
