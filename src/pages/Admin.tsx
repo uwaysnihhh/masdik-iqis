@@ -1257,17 +1257,53 @@ export default function Admin() {
                           </div>
                           <div className="space-y-2">
                             <Label>Tipe Kegiatan</Label>
-                            <Select value={eventType} onValueChange={setEventType}>
+                            <Select value={eventType} onValueChange={(v) => { setEventType(v); setEventSpeaker(""); setEventTopic(""); setEventTotalSessions(""); }}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="kajian">Kajian</SelectItem>
+                                <SelectItem value="daurah">Daurah</SelectItem>
+                                <SelectItem value="rapat">Rapat</SelectItem>
                                 <SelectItem value="pengajian">Pengajian</SelectItem>
                                 <SelectItem value="shalat">Sholat</SelectItem>
                                 <SelectItem value="sosial">Sosial</SelectItem>
                                 <SelectItem value="lainnya">Lainnya</SelectItem>
                               </SelectContent>
+                            </Select>
+                          </div>
+                          {(eventType === "kajian" || eventType === "daurah") && (
+                            <>
+                              <div className="space-y-2">
+                                <Label>Nama Pemateri <span className="text-destructive">*</span></Label>
+                                <Input
+                                  placeholder="Nama pemateri"
+                                  value={eventSpeaker}
+                                  onChange={(e) => setEventSpeaker(e.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Materi <span className="text-destructive">*</span></Label>
+                                <Input
+                                  placeholder="Judul materi"
+                                  value={eventTopic}
+                                  onChange={(e) => setEventTopic(e.target.value)}
+                                />
+                              </div>
+                            </>
+                          )}
+                          {eventType === "daurah" && (
+                            <div className="space-y-2">
+                              <Label>Jumlah Sesi <span className="text-destructive">*</span></Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                placeholder="Jumlah sesi"
+                                value={eventTotalSessions}
+                                onChange={(e) => setEventTotalSessions(e.target.value)}
+                              />
+                            </div>
+                          )}
                             </Select>
                           </div>
                           <div className="space-y-2">
