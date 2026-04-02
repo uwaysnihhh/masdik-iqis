@@ -388,6 +388,16 @@ export default function Admin() {
       return;
     }
 
+    if ((eventType === "kajian" || eventType === "daurah") && (!eventSpeaker || !eventTopic)) {
+      toast({ title: "Lengkapi Nama Pemateri dan Materi", variant: "destructive" });
+      return;
+    }
+
+    if (eventType === "daurah" && (!eventTotalSessions || parseInt(eventTotalSessions) < 1)) {
+      toast({ title: "Jumlah sesi minimal 1", variant: "destructive" });
+      return;
+    }
+
     const eventDateStr = format(eventDateObj, "yyyy-MM-dd");
 
     const { data, error } = await supabase.from("activities").insert({
@@ -398,6 +408,9 @@ export default function Admin() {
       type: eventType,
       description: eventDescription || null,
       created_by: user?.id,
+      speaker_name: (eventType === "kajian" || eventType === "daurah") ? eventSpeaker || null : null,
+      topic: (eventType === "kajian" || eventType === "daurah") ? eventTopic || null : null,
+      total_sessions: eventType === "daurah" ? parseInt(eventTotalSessions) || null : null,
     }).select().single();
 
     if (error) {
@@ -416,6 +429,9 @@ export default function Admin() {
     setEventEndTime("");
     setEventType("kajian");
     setEventDescription("");
+    setEventSpeaker("");
+    setEventTopic("");
+    setEventTotalSessions("");
     setEventDialogOpen(false);
     toast({ title: "Kegiatan Ditambahkan" });
 
