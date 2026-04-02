@@ -67,7 +67,9 @@ const App = () => (
             
             
             <Route path="/admin" element={<AdminRoute />} />
+            <Route path="/admin/absensi/:activityId" element={<AttendanceManagement />} />
             <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/absen/:token" element={<AttendanceForm />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
