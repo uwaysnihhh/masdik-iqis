@@ -14,6 +14,8 @@ import Saldo from "./pages/Saldo";
 
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
+import AttendanceManagement from "./pages/AttendanceManagement";
+import AttendanceForm from "./pages/AttendanceForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,7 +67,9 @@ const App = () => (
             
             
             <Route path="/admin" element={<AdminRoute />} />
+            <Route path="/admin/absensi/:activityId" element={<AttendanceManagement />} />
             <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/absen/:token" element={<AttendanceForm />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

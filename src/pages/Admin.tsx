@@ -55,6 +55,7 @@ import {
   CalendarIcon,
   Trash2,
   BookOpen,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -98,6 +99,9 @@ interface Event {
   event_end_time: string | null;
   type: string;
   description: string | null;
+  speaker_name: string | null;
+  topic: string | null;
+  total_sessions: number | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -165,6 +169,9 @@ export default function Admin() {
   const [eventType, setEventType] = useState("kajian");
   const [eventDescription, setEventDescription] = useState("");
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [eventSpeaker, setEventSpeaker] = useState("");
+  const [eventTopic, setEventTopic] = useState("");
+  const [eventTotalSessions, setEventTotalSessions] = useState("");
 
   // View booking dialog
   const [viewBooking, setViewBooking] = useState<Booking | null>(null);
@@ -381,6 +388,16 @@ export default function Admin() {
       return;
     }
 
+    if ((eventType === "kajian" || eventType === "daurah") && (!eventSpeaker || !eventTopic)) {
+      toast({ title: "Lengkapi Nama Pemateri dan Materi", variant: "destructive" });
+      return;
+    }
+
+    if (eventType === "daurah" && (!eventTotalSessions || parseInt(eventTotalSessions) < 1)) {
+      toast({ title: "Jumlah sesi minimal 1", variant: "destructive" });
+      return;
+    }
+
     const eventDateStr = format(eventDateObj, "yyyy-MM-dd");
 
     const { data, error } = await supabase.from("activities").insert({
@@ -391,6 +408,9 @@ export default function Admin() {
       type: eventType,
       description: eventDescription || null,
       created_by: user?.id,
+      speaker_name: (eventType === "kajian" || eventType === "daurah") ? eventSpeaker || null : null,
+      topic: (eventType === "kajian" || eventType === "daurah") ? eventTopic || null : null,
+      total_sessions: eventType === "daurah" ? parseInt(eventTotalSessions) || null : null,
     }).select().single();
 
     if (error) {
@@ -409,6 +429,9 @@ export default function Admin() {
     setEventEndTime("");
     setEventType("kajian");
     setEventDescription("");
+    setEventSpeaker("");
+    setEventTopic("");
+    setEventTotalSessions("");
     setEventDialogOpen(false);
     toast({ title: "Kegiatan Ditambahkan" });
 
@@ -1234,12 +1257,14 @@ export default function Admin() {
                           </div>
                           <div className="space-y-2">
                             <Label>Tipe Kegiatan</Label>
-                            <Select value={eventType} onValueChange={setEventType}>
+                            <Select value={eventType} onValueChange={(v) => { setEventType(v); setEventSpeaker(""); setEventTopic(""); setEventTotalSessions(""); }}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="kajian">Kajian</SelectItem>
+                                <SelectItem value="daurah">Daurah</SelectItem>
+                                <SelectItem value="rapat">Rapat</SelectItem>
                                 <SelectItem value="pengajian">Pengajian</SelectItem>
                                 <SelectItem value="shalat">Sholat</SelectItem>
                                 <SelectItem value="sosial">Sosial</SelectItem>
@@ -1247,6 +1272,38 @@ export default function Admin() {
                               </SelectContent>
                             </Select>
                           </div>
+                          {(eventType === "kajian" || eventType === "daurah") && (
+                            <>
+                              <div className="space-y-2">
+                                <Label>Nama Pemateri <span className="text-destructive">*</span></Label>
+                                <Input
+                                  placeholder="Nama pemateri"
+                                  value={eventSpeaker}
+                                  onChange={(e) => setEventSpeaker(e.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Materi <span className="text-destructive">*</span></Label>
+                                <Input
+                                  placeholder="Judul materi"
+                                  value={eventTopic}
+                                  onChange={(e) => setEventTopic(e.target.value)}
+                                />
+                              </div>
+                            </>
+                          )}
+                          {eventType === "daurah" && (
+                            <div className="space-y-2">
+                              <Label>Jumlah Sesi <span className="text-destructive">*</span></Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                placeholder="Jumlah sesi"
+                                value={eventTotalSessions}
+                                onChange={(e) => setEventTotalSessions(e.target.value)}
+                              />
+                            </div>
+                          )}
                           <div className="space-y-2">
                             <Label>Keterangan Kegiatan <span className="text-destructive">*</span></Label>
                             <Textarea
@@ -1295,6 +1352,18 @@ export default function Admin() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex gap-1">
+                                    {/* Kelola Absensi Button */}
+                                    {(event.type === "kajian" || event.type === "daurah" || event.type === "rapat") && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="px-2 text-primary"
+                                        onClick={() => navigate(`/admin/absensi/${event.id}`)}
+                                        title="Kelola Absensi"
+                                      >
+                                        <ClipboardList className="w-4 h-4" />
+                                      </Button>
+                                    )}
                                     {/* View Detail Button */}
                                     <Dialog open={viewEvent?.id === event.id} onOpenChange={(open) => setViewEvent(open ? event : null)}>
                                       <DialogTrigger asChild>
@@ -1332,6 +1401,24 @@ export default function Admin() {
                                             <Label className="text-muted-foreground text-xs">Tipe Kegiatan</Label>
                                             <p><Badge variant="outline">{event.type}</Badge></p>
                                           </div>
+                                          {event.speaker_name && (
+                                            <div>
+                                              <Label className="text-muted-foreground text-xs">Pemateri</Label>
+                                              <p className="font-medium">{event.speaker_name}</p>
+                                            </div>
+                                          )}
+                                          {event.topic && (
+                                            <div>
+                                              <Label className="text-muted-foreground text-xs">Materi</Label>
+                                              <p className="font-medium">{event.topic}</p>
+                                            </div>
+                                          )}
+                                          {event.total_sessions && (
+                                            <div>
+                                              <Label className="text-muted-foreground text-xs">Jumlah Sesi</Label>
+                                              <p className="font-medium">{event.total_sessions} sesi</p>
+                                            </div>
+                                          )}
                                           <div>
                                             <Label className="text-muted-foreground text-xs">Keterangan</Label>
                                             <p className="font-medium whitespace-pre-wrap">{event.description || "-"}</p>

@@ -24,7 +24,10 @@ export type Database = {
           event_time: string | null
           id: string
           is_active: boolean | null
+          speaker_name: string | null
           title: string
+          topic: string | null
+          total_sessions: number | null
           type: string
           updated_at: string
         }
@@ -37,7 +40,10 @@ export type Database = {
           event_time?: string | null
           id?: string
           is_active?: boolean | null
+          speaker_name?: string | null
           title: string
+          topic?: string | null
+          total_sessions?: number | null
           type: string
           updated_at?: string
         }
@@ -50,11 +56,109 @@ export type Database = {
           event_time?: string | null
           id?: string
           is_active?: boolean | null
+          speaker_name?: string | null
           title?: string
+          topic?: string | null
+          total_sessions?: number | null
           type?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      attendance_records: {
+        Row: {
+          activity_id: string
+          created_at: string | null
+          device_fingerprint: string
+          feedback: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          participant_name: string
+          session_id: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string | null
+          device_fingerprint: string
+          feedback: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          participant_name: string
+          session_id: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string | null
+          device_fingerprint?: string
+          feedback?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          participant_name?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_sessions: {
+        Row: {
+          activity_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          qr_token: string
+          scan_type: string
+          session_label: string | null
+          session_number: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          qr_token: string
+          scan_type?: string
+          session_label?: string | null
+          session_number?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          qr_token?: string
+          scan_type?: string
+          session_label?: string | null
+          session_number?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sessions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dkm_members: {
         Row: {
