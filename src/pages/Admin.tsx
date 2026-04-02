@@ -98,6 +98,9 @@ interface Event {
   event_end_time: string | null;
   type: string;
   description: string | null;
+  speaker_name: string | null;
+  topic: string | null;
+  total_sessions: number | null;
 }
 
 const statusColors: Record<string, string> = {
