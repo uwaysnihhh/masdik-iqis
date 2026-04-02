@@ -14,6 +14,8 @@ import Saldo from "./pages/Saldo";
 
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
+import AttendanceManagement from "./pages/AttendanceManagement";
+import AttendanceForm from "./pages/AttendanceForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
