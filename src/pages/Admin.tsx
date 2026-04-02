@@ -165,6 +165,9 @@ export default function Admin() {
   const [eventType, setEventType] = useState("kajian");
   const [eventDescription, setEventDescription] = useState("");
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [eventSpeaker, setEventSpeaker] = useState("");
+  const [eventTopic, setEventTopic] = useState("");
+  const [eventTotalSessions, setEventTotalSessions] = useState("");
 
   // View booking dialog
   const [viewBooking, setViewBooking] = useState<Booking | null>(null);
