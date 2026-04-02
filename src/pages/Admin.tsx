@@ -1352,6 +1352,18 @@ export default function Admin() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex gap-1">
+                                    {/* Kelola Absensi Button */}
+                                    {(event.type === "kajian" || event.type === "daurah" || event.type === "rapat") && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="px-2 text-primary"
+                                        onClick={() => navigate(`/admin/absensi/${event.id}`)}
+                                        title="Kelola Absensi"
+                                      >
+                                        <ClipboardList className="w-4 h-4" />
+                                      </Button>
+                                    )}
                                     {/* View Detail Button */}
                                     <Dialog open={viewEvent?.id === event.id} onOpenChange={(open) => setViewEvent(open ? event : null)}>
                                       <DialogTrigger asChild>
