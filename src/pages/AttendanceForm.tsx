@@ -1,0 +1,361 @@
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  CheckCircle, Loader2, MapPin, AlertTriangle, XCircle,
+} from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+// Masjid coordinates (approximate) - Pondok Pesantren IMMIM Putra Makassar
+const MASJID_LAT = -5.1477;
+const MASJID_LNG = 119.4327;
+const MAX_DISTANCE_METERS = 200;
+
+interface SessionData {
+  id: string;
+  activity_id: string;
+  session_number: number | null;
+  session_label: string | null;
+  qr_token: string;
+  scan_type: string;
+  is_active: boolean;
+}
+
+interface ActivityData {
+  id: string;
+  title: string;
+  type: string;
+  event_date: string;
+  speaker_name: string | null;
+  topic: string | null;
+}
+
+function getDeviceFingerprint(): string {
+  const stored = localStorage.getItem("attendance_device_id");
+  if (stored) return stored;
+  const fp = crypto.randomUUID();
+  localStorage.setItem("attendance_device_id", fp);
+  return fp;
+}
+
+function getCookieKey(sessionId: string): string {
+  return `attendance_${sessionId}`;
+}
+
+function hasAlreadySubmitted(sessionId: string): boolean {
+  return document.cookie.includes(getCookieKey(sessionId) + "=1");
+}
+
+function setSubmittedCookie(sessionId: string) {
+  const expires = new Date();
+  expires.setDate(expires.getDate() + 30);
+  document.cookie = `${getCookieKey(sessionId)}=1; expires=${expires.toUTCString()}; path=/`;
+}
+
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371e3;
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export default function AttendanceForm() {
+  const { token } = useParams<{ token: string }>();
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [activity, setActivity] = useState<ActivityData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [alreadyDone, setAlreadyDone] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+
+  const [name, setName] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [gpsStatus, setGpsStatus] = useState<"loading" | "ok" | "denied" | "too_far" | "error">("loading");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [distance, setDistance] = useState<number | null>(null);
+
+  // Restore name from cookie
+  useEffect(() => {
+    const savedName = localStorage.getItem("attendance_name");
+    if (savedName) setName(savedName);
+  }, []);
+
+  // Fetch session and activity
+  useEffect(() => {
+    const fetchSession = async () => {
+      if (!token) { setNotFound(true); setLoading(false); return; }
+
+      const { data: sessData, error: sessErr } = await supabase
+        .from("attendance_sessions")
+        .select("*")
+        .eq("qr_token", token)
+        .eq("is_active", true)
+        .single();
+
+      if (sessErr || !sessData) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      const sessionData = sessData as SessionData;
+      setSession(sessionData);
+
+      // Check cookie/device duplicate
+      if (hasAlreadySubmitted(sessionData.id)) {
+        setAlreadyDone(true);
+        setLoading(false);
+        return;
+      }
+
+      const { data: actData } = await supabase
+        .from("activities")
+        .select("*")
+        .eq("id", sessionData.activity_id)
+        .single();
+
+      if (actData) setActivity(actData as ActivityData);
+      setLoading(false);
+    };
+
+    fetchSession();
+  }, [token]);
+
+  // Get GPS
+  useEffect(() => {
+    if (alreadyDone || notFound) return;
+
+    if (!navigator.geolocation) {
+      setGpsStatus("error");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        const dist = calculateDistance(lat, lng, MASJID_LAT, MASJID_LNG);
+        setDistance(Math.round(dist));
+        if (dist <= MAX_DISTANCE_METERS) {
+          setGpsStatus("ok");
+        } else {
+          setGpsStatus("too_far");
+        }
+      },
+      (err) => {
+        if (err.code === 1) setGpsStatus("denied");
+        else setGpsStatus("error");
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  }, [alreadyDone, notFound]);
+
+  const handleSubmit = async () => {
+    if (!session || !activity) return;
+
+    if (!name.trim()) {
+      toast({ title: "Masukkan nama Anda", variant: "destructive" });
+      return;
+    }
+    if (feedback.trim().length < 10) {
+      toast({ title: "Feedback minimal 10 karakter", variant: "destructive" });
+      return;
+    }
+    if (gpsStatus !== "ok") {
+      toast({ title: "Lokasi GPS diperlukan dan harus di area masjid", variant: "destructive" });
+      return;
+    }
+
+    setSubmitting(true);
+    const deviceFp = getDeviceFingerprint();
+
+    const { error } = await supabase.from("attendance_records").insert({
+      session_id: session.id,
+      activity_id: session.activity_id,
+      participant_name: name.trim(),
+      feedback: feedback.trim(),
+      device_fingerprint: deviceFp,
+      latitude: coords?.lat || null,
+      longitude: coords?.lng || null,
+    });
+
+    if (error) {
+      if (error.code === "23505") {
+        setAlreadyDone(true);
+        toast({ title: "Anda sudah mengisi absensi ini", variant: "destructive" });
+      } else {
+        toast({ title: "Gagal menyimpan absensi", description: error.message, variant: "destructive" });
+      }
+      setSubmitting(false);
+      return;
+    }
+
+    // Save name and set cookie
+    localStorage.setItem("attendance_name", name.trim());
+    setSubmittedCookie(session.id);
+    setSubmitted(true);
+    setSubmitting(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-lg">
+          <CardContent className="pt-6 text-center">
+            <XCircle className="w-16 h-16 mx-auto text-destructive mb-4" />
+            <h2 className="text-xl font-bold mb-2">QR Code Tidak Valid</h2>
+            <p className="text-muted-foreground">QR code ini tidak ditemukan atau sudah tidak aktif.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (alreadyDone) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-lg">
+          <CardContent className="pt-6 text-center">
+            <CheckCircle className="w-16 h-16 mx-auto text-primary mb-4" />
+            <h2 className="text-xl font-bold mb-2">Sudah Absen</h2>
+            <p className="text-muted-foreground">Anda sudah mengisi absensi untuk sesi ini.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-lg">
+          <CardContent className="pt-6 text-center">
+            <CheckCircle className="w-16 h-16 mx-auto text-primary mb-4" />
+            <h2 className="text-xl font-bold mb-2">Absensi Berhasil!</h2>
+            <p className="text-muted-foreground mb-2">Terima kasih telah mengisi absensi.</p>
+            {activity && (
+              <div className="bg-muted/50 rounded-lg p-3 mt-4">
+                <p className="font-medium text-sm">{activity.title}</p>
+                <Badge variant="outline" className="mt-1">{session?.session_label}</Badge>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const feedbackLabel =
+    activity?.type === "daurah"
+      ? `Apa manfaat dari ${session?.session_label || "sesi ini"}?`
+      : "Apa manfaat dari kegiatan ini?";
+
+  return (
+    <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+      <Card className="max-w-md w-full border-0 shadow-lg">
+        <CardHeader className="text-center space-y-2">
+          <div className="w-12 h-12 rounded-xl gradient-islamic mx-auto flex items-center justify-center">
+            <CheckCircle className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <CardTitle className="text-lg">Absensi Kegiatan</CardTitle>
+          {activity && (
+            <div className="space-y-1">
+              <p className="font-medium text-sm">{activity.title}</p>
+              <Badge variant="outline">{session?.session_label}</Badge>
+              {activity.speaker_name && (
+                <p className="text-xs text-muted-foreground">Pemateri: {activity.speaker_name}</p>
+              )}
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* GPS Status */}
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+            <MapPin className="w-4 h-4 shrink-0" />
+            {gpsStatus === "loading" && (
+              <div className="flex items-center gap-2 text-sm">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span className="text-muted-foreground">Memeriksa lokasi...</span>
+              </div>
+            )}
+            {gpsStatus === "ok" && (
+              <span className="text-sm text-primary">
+                ✓ Lokasi terverifikasi {distance !== null && `(${distance}m dari masjid)`}
+              </span>
+            )}
+            {gpsStatus === "too_far" && (
+              <span className="text-sm text-destructive">
+                ✗ Anda terlalu jauh dari masjid {distance !== null && `(${distance}m)`}. Maksimal {MAX_DISTANCE_METERS}m.
+              </span>
+            )}
+            {gpsStatus === "denied" && (
+              <span className="text-sm text-destructive flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Izin lokasi ditolak. Aktifkan GPS untuk absen.
+              </span>
+            )}
+            {gpsStatus === "error" && (
+              <span className="text-sm text-destructive">Gagal mendapatkan lokasi</span>
+            )}
+          </div>
+
+          {/* Form */}
+          <div className="space-y-2">
+            <Label>Nama Lengkap <span className="text-destructive">*</span></Label>
+            <Input
+              placeholder="Masukkan nama lengkap"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={100}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>{feedbackLabel} <span className="text-destructive">*</span></Label>
+            <Textarea
+              placeholder="Minimal 10 karakter..."
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              maxLength={500}
+              rows={4}
+            />
+            <p className={`text-xs ${feedback.trim().length < 10 ? "text-destructive" : "text-muted-foreground"}`}>
+              {feedback.trim().length}/500 (min. 10)
+            </p>
+          </div>
+
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting || gpsStatus !== "ok" || !name.trim() || feedback.trim().length < 10}
+            className="w-full"
+          >
+            {submitting ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menyimpan...</>
+            ) : (
+              "Kirim Absensi"
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
