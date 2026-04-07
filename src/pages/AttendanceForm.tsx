@@ -128,7 +128,51 @@ export default function AttendanceForm() {
         .eq("id", sessionData.activity_id)
         .single();
 
-      if (actData) setActivity(actData as ActivityData);
+      if (actData) {
+        const activityData = actData as ActivityData;
+        setActivity(activityData);
+
+        // Time validation for kajian/rapat: arrival QR expires after event ends
+        if ((activityData.type === "kajian" || activityData.type === "rapat") && sessionData.scan_type === "arrival") {
+          const now = new Date();
+          const eventDate = new Date(activityData.event_date);
+          if (activityData.event_end_time) {
+            const [h, m] = activityData.event_end_time.split(":").map(Number);
+            eventDate.setHours(h, m, 0, 0);
+            if (now > eventDate) {
+              setExpired(true);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+
+        // Sequence validation for kajian/rapat: completion requires arrival first
+        if ((activityData.type === "kajian" || activityData.type === "rapat") && sessionData.scan_type === "completion") {
+          const deviceFp = getDeviceFingerprint();
+          // Find the arrival session for this activity
+          const { data: arrSessions } = await supabase
+            .from("attendance_sessions")
+            .select("id")
+            .eq("activity_id", sessionData.activity_id)
+            .eq("scan_type", "arrival");
+
+          if (arrSessions && arrSessions.length > 0) {
+            const arrivalSessionId = arrSessions[0].id;
+            const { data: arrRecords } = await supabase
+              .from("attendance_records")
+              .select("id")
+              .eq("session_id", arrivalSessionId)
+              .eq("device_fingerprint", deviceFp);
+
+            if (!arrRecords || arrRecords.length === 0) {
+              setNeedsArrivalFirst(true);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      }
       setLoading(false);
     };
 
