@@ -1141,7 +1141,7 @@ export default function Admin() {
                           <span className="hidden sm:inline">Tambah</span>
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Tambah Kegiatan</DialogTitle>
                         </DialogHeader>
