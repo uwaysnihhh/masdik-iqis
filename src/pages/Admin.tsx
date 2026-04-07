@@ -1141,7 +1141,7 @@ export default function Admin() {
                           <span className="hidden sm:inline">Tambah</span>
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Tambah Kegiatan</DialogTitle>
                         </DialogHeader>
@@ -1265,8 +1265,6 @@ export default function Admin() {
                                 <SelectItem value="kajian">Kajian</SelectItem>
                                 <SelectItem value="daurah">Daurah</SelectItem>
                                 <SelectItem value="rapat">Rapat</SelectItem>
-                                <SelectItem value="pengajian">Pengajian</SelectItem>
-                                <SelectItem value="shalat">Sholat</SelectItem>
                                 <SelectItem value="sosial">Sosial</SelectItem>
                                 <SelectItem value="lainnya">Lainnya</SelectItem>
                               </SelectContent>

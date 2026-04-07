@@ -12,9 +12,9 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Masjid coordinates (approximate) - Pondok Pesantren IMMIM Putra Makassar
-const MASJID_LAT = -5.1477;
-const MASJID_LNG = 119.4327;
+// Masjid coordinates - Pondok Pesantren IMMIM Putra Makassar, Jl. Taman Bunga Sudiang No.2
+const MASJID_LAT = -5.0706;
+const MASJID_LNG = 119.5186;
 const MAX_DISTANCE_METERS = 200;
 
 interface SessionData {
@@ -32,6 +32,8 @@ interface ActivityData {
   title: string;
   type: string;
   event_date: string;
+  event_time: string | null;
+  event_end_time: string | null;
   speaker_name: string | null;
   topic: string | null;
 }
@@ -77,6 +79,8 @@ export default function AttendanceForm() {
   const [submitted, setSubmitted] = useState(false);
   const [alreadyDone, setAlreadyDone] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [expired, setExpired] = useState(false);
+  const [needsArrivalFirst, setNeedsArrivalFirst] = useState(false);
 
   const [name, setName] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -124,7 +128,51 @@ export default function AttendanceForm() {
         .eq("id", sessionData.activity_id)
         .single();
 
-      if (actData) setActivity(actData as ActivityData);
+      if (actData) {
+        const activityData = actData as ActivityData;
+        setActivity(activityData);
+
+        // Time validation for kajian/rapat: arrival QR expires after event ends
+        if ((activityData.type === "kajian" || activityData.type === "rapat") && sessionData.scan_type === "arrival") {
+          const now = new Date();
+          const eventDate = new Date(activityData.event_date);
+          if (activityData.event_end_time) {
+            const [h, m] = activityData.event_end_time.split(":").map(Number);
+            eventDate.setHours(h, m, 0, 0);
+            if (now > eventDate) {
+              setExpired(true);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+
+        // Sequence validation for kajian/rapat: completion requires arrival first
+        if ((activityData.type === "kajian" || activityData.type === "rapat") && sessionData.scan_type === "completion") {
+          const deviceFp = getDeviceFingerprint();
+          // Find the arrival session for this activity
+          const { data: arrSessions } = await supabase
+            .from("attendance_sessions")
+            .select("id")
+            .eq("activity_id", sessionData.activity_id)
+            .eq("scan_type", "arrival");
+
+          if (arrSessions && arrSessions.length > 0) {
+            const arrivalSessionId = arrSessions[0].id;
+            const { data: arrRecords } = await supabase
+              .from("attendance_records")
+              .select("id")
+              .eq("session_id", arrivalSessionId)
+              .eq("device_fingerprint", deviceFp);
+
+            if (!arrRecords || arrRecords.length === 0) {
+              setNeedsArrivalFirst(true);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      }
       setLoading(false);
     };
 
@@ -224,6 +272,34 @@ export default function AttendanceForm() {
             <XCircle className="w-16 h-16 mx-auto text-destructive mb-4" />
             <h2 className="text-xl font-bold mb-2">QR Code Tidak Valid</h2>
             <p className="text-muted-foreground">QR code ini tidak ditemukan atau sudah tidak aktif.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (expired) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-lg">
+          <CardContent className="pt-6 text-center">
+            <XCircle className="w-16 h-16 mx-auto text-destructive mb-4" />
+            <h2 className="text-xl font-bold mb-2">Absensi Ditutup</h2>
+            <p className="text-muted-foreground">Waktu kegiatan sudah selesai, absensi kedatangan tidak lagi tersedia.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (needsArrivalFirst) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-lg">
+          <CardContent className="pt-6 text-center">
+            <AlertTriangle className="w-16 h-16 mx-auto text-yellow-500 mb-4" />
+            <h2 className="text-xl font-bold mb-2">Absen Kedatangan Dulu</h2>
+            <p className="text-muted-foreground">Anda harus mengisi absensi kedatangan terlebih dahulu sebelum mengisi absensi selesai.</p>
           </CardContent>
         </Card>
       </div>
