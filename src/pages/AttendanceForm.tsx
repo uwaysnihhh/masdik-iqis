@@ -79,6 +79,8 @@ export default function AttendanceForm() {
   const [submitted, setSubmitted] = useState(false);
   const [alreadyDone, setAlreadyDone] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [expired, setExpired] = useState(false);
+  const [needsArrivalFirst, setNeedsArrivalFirst] = useState(false);
 
   const [name, setName] = useState("");
   const [feedback, setFeedback] = useState("");
