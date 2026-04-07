@@ -1265,8 +1265,6 @@ export default function Admin() {
                                 <SelectItem value="kajian">Kajian</SelectItem>
                                 <SelectItem value="daurah">Daurah</SelectItem>
                                 <SelectItem value="rapat">Rapat</SelectItem>
-                                <SelectItem value="pengajian">Pengajian</SelectItem>
-                                <SelectItem value="shalat">Sholat</SelectItem>
                                 <SelectItem value="sosial">Sosial</SelectItem>
                                 <SelectItem value="lainnya">Lainnya</SelectItem>
                               </SelectContent>

@@ -278,6 +278,34 @@ export default function AttendanceForm() {
     );
   }
 
+  if (expired) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-lg">
+          <CardContent className="pt-6 text-center">
+            <XCircle className="w-16 h-16 mx-auto text-destructive mb-4" />
+            <h2 className="text-xl font-bold mb-2">Absensi Ditutup</h2>
+            <p className="text-muted-foreground">Waktu kegiatan sudah selesai, absensi kedatangan tidak lagi tersedia.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (needsArrivalFirst) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-lg">
+          <CardContent className="pt-6 text-center">
+            <AlertTriangle className="w-16 h-16 mx-auto text-yellow-500 mb-4" />
+            <h2 className="text-xl font-bold mb-2">Absen Kedatangan Dulu</h2>
+            <p className="text-muted-foreground">Anda harus mengisi absensi kedatangan terlebih dahulu sebelum mengisi absensi selesai.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (alreadyDone) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
