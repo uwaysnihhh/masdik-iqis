@@ -12,10 +12,6 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Masjid coordinates - Pondok Pesantren IMMIM Putra Makassar, Jl. Taman Bunga Sudiang No.2
-const MASJID_LAT = -5.0706;
-const MASJID_LNG = 119.5186;
-const MAX_DISTANCE_METERS = 200;
 
 interface SessionData {
   id: string;
