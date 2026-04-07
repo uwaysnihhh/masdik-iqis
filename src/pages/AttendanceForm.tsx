@@ -32,6 +32,8 @@ interface ActivityData {
   title: string;
   type: string;
   event_date: string;
+  event_time: string | null;
+  event_end_time: string | null;
   speaker_name: string | null;
   topic: string | null;
 }
