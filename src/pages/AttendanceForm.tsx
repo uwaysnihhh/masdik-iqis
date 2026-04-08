@@ -7,11 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  CheckCircle, Loader2, AlertTriangle, XCircle,
+  CheckCircle, Loader2, AlertTriangle, XCircle, MapPin,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+const MASJID_LAT = -5.0930015;
+const MASJID_LNG = 119.5287606;
+const MAX_DISTANCE_METERS = 500;
 
 interface SessionData {
   id: string;
@@ -56,6 +59,18 @@ function setSubmittedCookie(sessionId: string) {
   document.cookie = `${getCookieKey(sessionId)}=1; expires=${expires.toUTCString()}; path=/`;
 }
 
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+type GpsStatus = "checking" | "ok" | "too_far" | "denied" | "unavailable";
 
 export default function AttendanceForm() {
   const { token } = useParams<{ token: string }>();
@@ -72,10 +87,34 @@ export default function AttendanceForm() {
   const [name, setName] = useState("");
   const [feedback, setFeedback] = useState("");
 
-  // Restore name from cookie
+  const [gpsStatus, setGpsStatus] = useState<GpsStatus>("checking");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [distance, setDistance] = useState<number | null>(null);
+
+  // Restore name
   useEffect(() => {
     const savedName = localStorage.getItem("attendance_name");
     if (savedName) setName(savedName);
+  }, []);
+
+  // GPS check
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setGpsStatus("unavailable");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        const dist = calculateDistance(lat, lng, MASJID_LAT, MASJID_LNG);
+        setDistance(Math.round(dist));
+        setGpsStatus(dist <= MAX_DISTANCE_METERS ? "ok" : "too_far");
+      },
+      () => setGpsStatus("denied"),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   }, []);
 
   // Fetch session and activity
@@ -99,7 +138,6 @@ export default function AttendanceForm() {
       const sessionData = sessData as SessionData;
       setSession(sessionData);
 
-      // Check cookie/device duplicate
       if (hasAlreadySubmitted(sessionData.id)) {
         setAlreadyDone(true);
         setLoading(false);
@@ -116,7 +154,6 @@ export default function AttendanceForm() {
         const activityData = actData as ActivityData;
         setActivity(activityData);
 
-        // Time validation for kajian/rapat: arrival QR expires after event ends
         if ((activityData.type === "kajian" || activityData.type === "rapat") && sessionData.scan_type === "arrival") {
           const now = new Date();
           const eventDate = new Date(activityData.event_date);
@@ -131,10 +168,8 @@ export default function AttendanceForm() {
           }
         }
 
-        // Sequence validation for kajian/rapat: completion requires arrival first
         if ((activityData.type === "kajian" || activityData.type === "rapat") && sessionData.scan_type === "completion") {
           const deviceFp = getDeviceFingerprint();
-          // Find the arrival session for this activity
           const { data: arrSessions } = await supabase
             .from("attendance_sessions")
             .select("id")
@@ -163,9 +198,12 @@ export default function AttendanceForm() {
     fetchSession();
   }, [token]);
 
-
   const handleSubmit = async () => {
     if (!session || !activity) return;
+    if (gpsStatus !== "ok") {
+      toast({ title: "Lokasi tidak valid", description: "Anda harus berada dalam radius 500m dari masjid.", variant: "destructive" });
+      return;
+    }
 
     if (!name.trim()) {
       toast({ title: "Masukkan nama Anda", variant: "destructive" });
@@ -185,8 +223,8 @@ export default function AttendanceForm() {
       participant_name: name.trim(),
       feedback: feedback.trim(),
       device_fingerprint: deviceFp,
-      latitude: null,
-      longitude: null,
+      latitude: coords?.lat ?? null,
+      longitude: coords?.lng ?? null,
     });
 
     if (error) {
@@ -200,12 +238,13 @@ export default function AttendanceForm() {
       return;
     }
 
-    // Save name and set cookie
     localStorage.setItem("attendance_name", name.trim());
     setSubmittedCookie(session.id);
     setSubmitted(true);
     setSubmitting(false);
   };
+
+  // --- Render states ---
 
   if (loading) {
     return (
@@ -296,6 +335,8 @@ export default function AttendanceForm() {
       ? `Apa manfaat dari ${session?.session_label || "sesi ini"}?`
       : "Apa manfaat dari kegiatan ini?";
 
+  const gpsReady = gpsStatus === "ok";
+
   return (
     <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
       <Card className="max-w-md w-full border-0 shadow-lg">
@@ -316,6 +357,25 @@ export default function AttendanceForm() {
         </CardHeader>
         <CardContent className="space-y-4">
 
+          {/* GPS Status */}
+          <div className={`flex items-center gap-2 rounded-lg p-3 text-sm ${
+            gpsStatus === "ok" ? "bg-primary/10 text-primary" :
+            gpsStatus === "checking" ? "bg-muted text-muted-foreground" :
+            "bg-destructive/10 text-destructive"
+          }`}>
+            {gpsStatus === "checking" ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Memeriksa lokasi...</>
+            ) : gpsStatus === "ok" ? (
+              <><MapPin className="w-4 h-4" /> Lokasi valid ({distance}m dari masjid)</>
+            ) : gpsStatus === "too_far" ? (
+              <><XCircle className="w-4 h-4" /> Terlalu jauh ({distance}m) — maksimal 500m dari masjid</>
+            ) : gpsStatus === "denied" ? (
+              <><XCircle className="w-4 h-4" /> Izin lokasi ditolak. Aktifkan GPS dan izinkan akses lokasi.</>
+            ) : (
+              <><XCircle className="w-4 h-4" /> GPS tidak tersedia di perangkat ini.</>
+            )}
+          </div>
+
           {/* Form */}
           <div className="space-y-2">
             <Label>Nama Lengkap <span className="text-destructive">*</span></Label>
@@ -324,6 +384,7 @@ export default function AttendanceForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={100}
+              disabled={!gpsReady}
             />
           </div>
 
@@ -335,6 +396,7 @@ export default function AttendanceForm() {
               onChange={(e) => setFeedback(e.target.value)}
               maxLength={500}
               rows={4}
+              disabled={!gpsReady}
             />
             <p className={`text-xs ${feedback.trim().length < 10 ? "text-destructive" : "text-muted-foreground"}`}>
               {feedback.trim().length}/500 (min. 10)
@@ -343,7 +405,7 @@ export default function AttendanceForm() {
 
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !name.trim() || feedback.trim().length < 10}
+            disabled={submitting || !gpsReady || !name.trim() || feedback.trim().length < 10}
             className="w-full"
           >
             {submitting ? (
