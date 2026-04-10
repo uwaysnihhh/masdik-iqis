@@ -27,6 +27,7 @@ const INSTANSI_OPTIONS = [
   "SDIT",
   "SMPIT",
   "SMKIT",
+  "RTQ IQIS",
   "Reliqo",
   "DKM Masdik",
   "PT. Sadita",
