@@ -72,6 +72,7 @@ export type Database = {
           device_fingerprint: string
           feedback: string
           id: string
+          instansi: string | null
           latitude: number | null
           longitude: number | null
           participant_name: string
@@ -83,6 +84,7 @@ export type Database = {
           device_fingerprint: string
           feedback: string
           id?: string
+          instansi?: string | null
           latitude?: number | null
           longitude?: number | null
           participant_name: string
@@ -94,6 +96,7 @@ export type Database = {
           device_fingerprint?: string
           feedback?: string
           id?: string
+          instansi?: string | null
           latitude?: number | null
           longitude?: number | null
           participant_name?: string

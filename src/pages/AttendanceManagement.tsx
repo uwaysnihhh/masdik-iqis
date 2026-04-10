@@ -11,8 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, QrCode, Download, RefreshCw, Users, UserCheck, UserX,
-  TrendingUp, Loader2, Trash2, BarChart3,
+  TrendingUp, Loader2, Trash2, BarChart3, Search, Filter,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +26,7 @@ import { id as idLocale } from "date-fns/locale";
 import {
   ChartContainer, ChartTooltip, ChartTooltipContent,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
 interface Activity {
   id: string;
@@ -54,6 +58,7 @@ interface AttendanceRecord {
   activity_id: string;
   participant_name: string;
   feedback: string;
+  instansi: string | null;
   device_fingerprint: string;
   latitude: number | null;
   longitude: number | null;
@@ -68,6 +73,14 @@ const chartConfig = {
   gap: { label: "Tidak Selesai", color: "hsl(var(--destructive))" },
 };
 
+// Warna untuk chart instansi (palette 20 warna)
+const INSTANSI_COLORS = [
+  "#16a34a", "#2563eb", "#d97706", "#dc2626", "#7c3aed",
+  "#db2777", "#0891b2", "#65a30d", "#ea580c", "#6d28d9",
+  "#0d9488", "#b45309", "#be185d", "#1d4ed8", "#15803d",
+  "#9333ea", "#c2410c", "#0369a1", "#4d7c0f", "#7e22ce",
+];
+
 export default function AttendanceManagement() {
   const { activityId } = useParams<{ activityId: string }>();
   const navigate = useNavigate();
@@ -79,6 +92,8 @@ export default function AttendanceManagement() {
   const [generating, setGenerating] = useState(false);
   const [selectedQR, setSelectedQR] = useState<AttendanceSession | null>(null);
   const [deleteRecordId, setDeleteRecordId] = useState<string | null>(null);
+  const [searchName, setSearchName] = useState("");
+  const [filterInstansi, setFilterInstansi] = useState<string>("all");
   const qrRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async () => {
@@ -130,6 +145,15 @@ export default function AttendanceManagement() {
             scan_type: scanType,
           });
         }
+      } else if (activity.type === "tudung_sipulung") {
+        // Tudung Sipulung: hanya 1 QR untuk kehadiran
+        newSessions.push({
+          activity_id: activity.id,
+          session_number: 1,
+          session_label: "Hadir",
+          qr_token: generateToken(),
+          scan_type: "arrival",
+        });
       } else {
         // Kajian/Rapat: 1 QR for arrival, 1 QR for completion
         newSessions.push({
@@ -210,9 +234,21 @@ export default function AttendanceManagement() {
       return;
     }
 
-    const headers = ["Nama", "Sesi", "Feedback", "Waktu", "Latitude", "Longitude"];
+    const isTudung = activity?.type === "tudung_sipulung";
+    const headers = isTudung
+      ? ["Nama", "Instansi", "Waktu", "Latitude", "Longitude"]
+      : ["Nama", "Sesi", "Feedback", "Waktu", "Latitude", "Longitude"];
     const rows = records.map((r) => {
       const session = sessions.find((s) => s.id === r.session_id);
+      if (isTudung) {
+        return [
+          r.participant_name,
+          r.instansi || "-",
+          format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: idLocale }),
+          r.latitude?.toString() || "-",
+          r.longitude?.toString() || "-",
+        ].join(",");
+      }
       return [
         r.participant_name,
         session?.session_label || "-",
@@ -249,6 +285,26 @@ export default function AttendanceManagement() {
     { name: "Selesai", value: completionCount, fill: "hsl(var(--primary))" },
     { name: "Tidak Selesai", value: Math.max(0, gapCount), fill: "hsl(var(--destructive))" },
   ].filter((d) => d.value > 0);
+
+  // Data chart & filter untuk Tudung Sipulung
+  const instansiCountMap: Record<string, number> = {};
+  records.forEach((r) => {
+    const key = r.instansi || "Tidak diisi";
+    instansiCountMap[key] = (instansiCountMap[key] || 0) + 1;
+  });
+  const instansiChartData = Object.entries(instansiCountMap)
+    .map(([name, jumlah]) => ({ name, jumlah }))
+    .sort((a, b) => b.jumlah - a.jumlah);
+  const uniqueInstansi = instansiChartData.map((d) => d.name);
+
+  // Filtered records berdasarkan search nama + filter instansi
+  const filteredRecords = records.filter((r) => {
+    const matchName = r.participant_name.toLowerCase().includes(searchName.toLowerCase());
+    const matchInstansi =
+      filterInstansi === "all" || r.instansi === filterInstansi ||
+      (filterInstansi === "Tidak diisi" && !r.instansi);
+    return matchName && matchInstansi;
+  });
 
   if (authLoading || isLoading) {
     return (
@@ -308,7 +364,9 @@ export default function AttendanceManagement() {
               )}
               {activity.topic && (
                 <div>
-                  <p className="text-xs text-muted-foreground">Materi</p>
+                  <p className="text-xs text-muted-foreground">
+                    {activity.type === "tudung_sipulung" ? "Tema" : "Materi"}
+                  </p>
                   <p className="font-medium text-sm">{activity.topic}</p>
                 </div>
               )}
@@ -318,18 +376,21 @@ export default function AttendanceManagement() {
 
         {/* Statistics */}
         {records.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className={`grid gap-3 ${activity?.type === "tudung_sipulung" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-2 md:grid-cols-4"}`}>
             <Card className="border-0 shadow-lg">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl gradient-islamic flex items-center justify-center">
                   <Users className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Total Absen</p>
+                  <p className="text-xs text-muted-foreground">
+                    {activity?.type === "tudung_sipulung" ? "Total Hadir" : "Total Absen"}
+                  </p>
                   <p className="text-xl font-bold">{totalRecords}</p>
                 </div>
               </CardContent>
             </Card>
+            {activity?.type !== "tudung_sipulung" && (
             <Card className="border-0 shadow-lg">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -341,6 +402,8 @@ export default function AttendanceManagement() {
                 </div>
               </CardContent>
             </Card>
+            )}
+            {activity?.type !== "tudung_sipulung" && (
             <Card className="border-0 shadow-lg">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
@@ -352,6 +415,8 @@ export default function AttendanceManagement() {
                 </div>
               </CardContent>
             </Card>
+            )}
+            {activity?.type !== "tudung_sipulung" && (
             <Card className="border-0 shadow-lg">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
@@ -363,11 +428,12 @@ export default function AttendanceManagement() {
                 </div>
               </CardContent>
             </Card>
+            )}
           </div>
         )}
 
-        {/* Charts */}
-        {records.length > 0 && (
+        {/* Charts — tidak ditampilkan untuk tudung_sipulung */}
+        {records.length > 0 && activity?.type !== "tudung_sipulung" && (
           <div className="grid md:grid-cols-2 gap-6">
             <Card className="border-0 shadow-lg">
               <CardHeader>
@@ -410,6 +476,81 @@ export default function AttendanceManagement() {
                 ) : (
                   <p className="text-muted-foreground text-sm">Belum ada data</p>
                 )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Charts Instansi — hanya untuk tudung_sipulung */}
+        {records.length > 0 && activity?.type === "tudung_sipulung" && (
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Pie chart distribusi instansi */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Distribusi Instansi
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex items-center justify-center">
+                <ChartContainer config={chartConfig} className="h-[280px] w-full">
+                  <PieChart>
+                    <Pie
+                      data={instansiChartData}
+                      dataKey="jumlah"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      label={({ name, percent }) =>
+                        `${name.length > 12 ? name.slice(0, 12) + "…" : name} (${(percent * 100).toFixed(0)}%)`
+                      }
+                      labelLine={false}
+                    >
+                      {instansiChartData.map((_, i) => (
+                        <Cell key={i} fill={INSTANSI_COLORS[i % INSTANSI_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [value + " peserta", name]}
+                    />
+                  </PieChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            {/* Bar chart horizontal per instansi */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Jumlah Peserta per Instansi
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[280px] w-full">
+                  <BarChart
+                    data={instansiChartData}
+                    layout="vertical"
+                    margin={{ left: 8, right: 24, top: 4, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" allowDecimals={false} fontSize={11} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      fontSize={10}
+                      width={110}
+                      tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 14) + "…" : v}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="jumlah" radius={[0, 4, 4, 0]}>
+                      {instansiChartData.map((_, i) => (
+                        <Cell key={i} fill={INSTANSI_COLORS[i % INSTANSI_COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
               </CardContent>
             </Card>
           </div>
@@ -503,44 +644,90 @@ export default function AttendanceManagement() {
 
         {/* Attendance Records */}
         <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Daftar Peserta ({records.length})
-            </CardTitle>
+          <CardHeader className="pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Daftar Peserta
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({filteredRecords.length}{filteredRecords.length !== records.length ? ` dari ${records.length}` : ""})
+                </span>
+              </CardTitle>
+              <div className="flex gap-2 flex-wrap">
+                {/* Search by name — semua tipe */}
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari nama..."
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    className="pl-8 h-8 text-sm w-40"
+                  />
+                </div>
+                {/* Filter by instansi — hanya untuk tudung_sipulung */}
+                {activity?.type === "tudung_sipulung" && (
+                  <Select value={filterInstansi} onValueChange={setFilterInstansi}>
+                    <SelectTrigger className="h-8 text-sm w-44 gap-1">
+                      <Filter className="w-3.5 h-3.5 shrink-0" />
+                      <SelectValue placeholder="Semua instansi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Instansi</SelectItem>
+                      {uniqueInstansi.map((inst) => (
+                        <SelectItem key={inst} value={inst}>{inst}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nama</TableHead>
-                  <TableHead>Sesi</TableHead>
-                  <TableHead className="hidden md:table-cell">Feedback</TableHead>
+                  {activity?.type === "tudung_sipulung" ? (
+                    <TableHead>Instansi</TableHead>
+                  ) : (
+                    <>
+                      <TableHead>Sesi</TableHead>
+                      <TableHead className="hidden md:table-cell">Feedback</TableHead>
+                    </>
+                  )}
                   <TableHead>Waktu</TableHead>
                   <TableHead>Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {records.length === 0 ? (
+                {filteredRecords.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Belum ada peserta yang absen
+                    <TableCell colSpan={activity?.type === "tudung_sipulung" ? 4 : 5} className="text-center py-8 text-muted-foreground">
+                      {records.length === 0
+                        ? "Belum ada peserta yang absen"
+                        : "Tidak ada peserta yang cocok dengan filter"}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  records.map((record) => {
+                  filteredRecords.map((record) => {
                     const session = sessions.find((s) => s.id === record.session_id);
                     return (
                       <TableRow key={record.id}>
                         <TableCell className="font-medium text-sm">{record.participant_name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {session?.session_label || "-"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell text-sm max-w-[200px] truncate">
-                          {record.feedback}
-                        </TableCell>
+                        {activity?.type === "tudung_sipulung" ? (
+                          <TableCell className="text-sm">{record.instansi || "-"}</TableCell>
+                        ) : (
+                          <>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {session?.session_label || "-"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell text-sm max-w-[200px] truncate">
+                              {record.feedback}
+                            </TableCell>
+                          </>
+                        )}
                         <TableCell className="text-sm text-muted-foreground">
                           {format(new Date(record.created_at), "HH:mm", { locale: idLocale })}
                         </TableCell>

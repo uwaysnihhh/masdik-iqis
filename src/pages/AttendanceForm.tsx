@@ -9,12 +9,37 @@ import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle, Loader2, AlertTriangle, XCircle, MapPin,
 } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const MASJID_LAT = -5.0930015;
 const MASJID_LNG = 119.5287606;
 const MAX_DISTANCE_METERS = 500;
+
+const INSTANSI_OPTIONS = [
+  "BPH IQIS",
+  "BK",
+  "KBIT",
+  "TKIT",
+  "SDIT",
+  "SMPIT",
+  "SMKIT",
+  "Reliqo",
+  "DKM Masdik",
+  "PT. Sadita",
+  "KDM by PT. Mesotama",
+  "GOTA IQIS",
+  "Sahabat/Kerabat Yayasan",
+  "BUROQ Malino",
+  "Donatur/Investor IQIS",
+  "Orang Tua Siswa IQIS",
+  "OSIS SMPIT IQIS",
+  "OSIS SMKIT IQIS",
+  "Lainnya",
+];
 
 interface SessionData {
   id: string;
@@ -86,6 +111,8 @@ export default function AttendanceForm() {
 
   const [name, setName] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [instansi, setInstansi] = useState("");
+  const [instansiLainnya, setInstansiLainnya] = useState("");
 
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>("checking");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -209,19 +236,38 @@ export default function AttendanceForm() {
       toast({ title: "Masukkan nama Anda", variant: "destructive" });
       return;
     }
-    if (feedback.trim().length < 10) {
-      toast({ title: "Feedback minimal 10 karakter", variant: "destructive" });
-      return;
+
+    const isTudung = activity.type === "tudung_sipulung";
+
+    if (isTudung) {
+      if (!instansi) {
+        toast({ title: "Pilih instansi Anda", variant: "destructive" });
+        return;
+      }
+      if (instansi === "Lainnya" && !instansiLainnya.trim()) {
+        toast({ title: "Tuliskan nama instansi Anda", variant: "destructive" });
+        return;
+      }
+    } else {
+      if (feedback.trim().length < 10) {
+        toast({ title: "Feedback minimal 10 karakter", variant: "destructive" });
+        return;
+      }
     }
 
     setSubmitting(true);
     const deviceFp = getDeviceFingerprint();
 
+    const finalInstansi = isTudung
+      ? (instansi === "Lainnya" ? instansiLainnya.trim() : instansi)
+      : null;
+
     const { error } = await supabase.from("attendance_records").insert({
       session_id: session.id,
       activity_id: session.activity_id,
       participant_name: name.trim(),
-      feedback: feedback.trim(),
+      feedback: isTudung ? (finalInstansi ?? "-") : feedback.trim(),
+      instansi: finalInstansi,
       device_fingerprint: deviceFp,
       latitude: coords?.lat ?? null,
       longitude: coords?.lng ?? null,
@@ -330,12 +376,20 @@ export default function AttendanceForm() {
     );
   }
 
+  const isTudung = activity?.type === "tudung_sipulung";
+
   const feedbackLabel =
     activity?.type === "daurah"
       ? `Apa manfaat dari ${session?.session_label || "sesi ini"}?`
       : "Apa manfaat dari kegiatan ini?";
 
   const gpsReady = gpsStatus === "ok";
+
+  const isFormValid = gpsReady && !!name.trim() && (
+    isTudung
+      ? !!instansi && (instansi !== "Lainnya" || !!instansiLainnya.trim())
+      : feedback.trim().length >= 10
+  );
 
   return (
     <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
@@ -344,13 +398,20 @@ export default function AttendanceForm() {
           <div className="w-12 h-12 rounded-xl gradient-islamic mx-auto flex items-center justify-center">
             <CheckCircle className="w-6 h-6 text-primary-foreground" />
           </div>
-          <CardTitle className="text-lg">Absensi Kegiatan</CardTitle>
+          <CardTitle className="text-lg">
+            {isTudung ? "Daftar Hadir — Tudung Sipulung" : "Absensi Kegiatan"}
+          </CardTitle>
           {activity && (
             <div className="space-y-1">
               <p className="font-medium text-sm">{activity.title}</p>
               <Badge variant="outline">{session?.session_label}</Badge>
               {activity.speaker_name && (
-                <p className="text-xs text-muted-foreground">Pemateri: {activity.speaker_name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isTudung ? "Narasumber" : "Pemateri"}: {activity.speaker_name}
+                </p>
+              )}
+              {isTudung && activity.topic && (
+                <p className="text-xs text-muted-foreground">Tema: {activity.topic}</p>
               )}
             </div>
           )}
@@ -388,30 +449,65 @@ export default function AttendanceForm() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>{feedbackLabel} <span className="text-destructive">*</span></Label>
-            <Textarea
-              placeholder="Minimal 10 karakter..."
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              maxLength={500}
-              rows={4}
-              disabled={!gpsReady}
-            />
-            <p className={`text-xs ${feedback.trim().length < 10 ? "text-destructive" : "text-muted-foreground"}`}>
-              {feedback.trim().length}/500 (min. 10)
-            </p>
-          </div>
+          {isTudung ? (
+            <>
+              {/* Instansi Dropdown for Tudung Sipulung */}
+              <div className="space-y-2">
+                <Label>Instansi <span className="text-destructive">*</span></Label>
+                <Select
+                  value={instansi}
+                  onValueChange={setInstansi}
+                  disabled={!gpsReady}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih instansi..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INSTANSI_OPTIONS.map((opt) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {instansi === "Lainnya" && (
+                <div className="space-y-2">
+                  <Label>Nama Instansi <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="Tuliskan nama instansi Anda"
+                    value={instansiLainnya}
+                    onChange={(e) => setInstansiLainnya(e.target.value)}
+                    maxLength={100}
+                    disabled={!gpsReady}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="space-y-2">
+              <Label>{feedbackLabel} <span className="text-destructive">*</span></Label>
+              <Textarea
+                placeholder="Minimal 10 karakter..."
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                maxLength={500}
+                rows={4}
+                disabled={!gpsReady}
+              />
+              <p className={`text-xs ${feedback.trim().length < 10 ? "text-destructive" : "text-muted-foreground"}`}>
+                {feedback.trim().length}/500 (min. 10)
+              </p>
+            </div>
+          )}
 
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !gpsReady || !name.trim() || feedback.trim().length < 10}
+            disabled={submitting || !isFormValid}
             className="w-full"
           >
             {submitting ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menyimpan...</>
             ) : (
-              "Kirim Absensi"
+              isTudung ? "Daftar Hadir" : "Kirim Absensi"
             )}
           </Button>
         </CardContent>

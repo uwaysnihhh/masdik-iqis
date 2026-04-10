@@ -393,6 +393,7 @@ export default function Admin() {
       return;
     }
 
+
     if (eventType === "daurah" && (!eventTotalSessions || parseInt(eventTotalSessions) < 1)) {
       toast({ title: "Jumlah sesi minimal 1", variant: "destructive" });
       return;
@@ -408,8 +409,8 @@ export default function Admin() {
       type: eventType,
       description: eventDescription || null,
       created_by: user?.id,
-      speaker_name: (eventType === "kajian" || eventType === "daurah") ? eventSpeaker || null : null,
-      topic: (eventType === "kajian" || eventType === "daurah") ? eventTopic || null : null,
+      speaker_name: (eventType === "kajian" || eventType === "daurah" || eventType === "tudung_sipulung") ? eventSpeaker || null : null,
+      topic: (eventType === "kajian" || eventType === "daurah" || eventType === "tudung_sipulung") ? eventTopic || null : null,
       total_sessions: eventType === "daurah" ? parseInt(eventTotalSessions) || null : null,
     }).select().single();
 
@@ -1265,15 +1266,19 @@ export default function Admin() {
                                 <SelectItem value="kajian">Kajian</SelectItem>
                                 <SelectItem value="daurah">Daurah</SelectItem>
                                 <SelectItem value="rapat">Rapat</SelectItem>
+                                <SelectItem value="tudung_sipulung">Tudung Sipulung</SelectItem>
                                 <SelectItem value="sosial">Sosial</SelectItem>
                                 <SelectItem value="lainnya">Lainnya</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
-                          {(eventType === "kajian" || eventType === "daurah") && (
+                          {(eventType === "kajian" || eventType === "daurah" || eventType === "tudung_sipulung") && (
                             <>
                               <div className="space-y-2">
-                                <Label>Nama Pemateri <span className="text-destructive">*</span></Label>
+                                <Label>
+                                  Nama Pemateri / Narasumber
+                                  {(eventType === "kajian" || eventType === "daurah") && <span className="text-destructive"> *</span>}
+                                </Label>
                                 <Input
                                   placeholder="Nama pemateri"
                                   value={eventSpeaker}
@@ -1281,9 +1286,12 @@ export default function Admin() {
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label>Materi <span className="text-destructive">*</span></Label>
+                                <Label>
+                                  {eventType === "tudung_sipulung" ? "Tema" : "Materi"}
+                                  {(eventType === "kajian" || eventType === "daurah") && <span className="text-destructive"> *</span>}
+                                </Label>
                                 <Input
-                                  placeholder="Judul materi"
+                                  placeholder={eventType === "tudung_sipulung" ? "Tema kegiatan" : "Judul materi"}
                                   value={eventTopic}
                                   onChange={(e) => setEventTopic(e.target.value)}
                                 />
@@ -1351,7 +1359,7 @@ export default function Admin() {
                                 <TableCell>
                                   <div className="flex gap-1">
                                     {/* Kelola Absensi Button */}
-                                    {(event.type === "kajian" || event.type === "daurah" || event.type === "rapat") && (
+                                    {(event.type === "kajian" || event.type === "daurah" || event.type === "rapat" || event.type === "tudung_sipulung") && (
                                       <Button
                                         size="sm"
                                         variant="outline"

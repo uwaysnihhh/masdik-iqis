@@ -35,6 +35,7 @@ const typeColors: Record<string, string> = {
   pernikahan: "border-pink-500 text-pink-500 bg-transparent",
   aqiqah: "border-amber-500 text-amber-500 bg-transparent",
   rapat: "border-blue-500 text-blue-500 bg-transparent",
+  tudung_sipulung: "border-purple-500 text-purple-500 bg-transparent",
   lainnya: "border-gray-500 text-gray-500 bg-transparent",
 };
 
