@@ -110,6 +110,7 @@ export default function AttendanceForm() {
   const [needsArrivalFirst, setNeedsArrivalFirst] = useState(false);
 
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [feedback, setFeedback] = useState("");
   const [instansi, setInstansi] = useState("");
   const [instansiLainnya, setInstansiLainnya] = useState("");
@@ -118,10 +119,12 @@ export default function AttendanceForm() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
 
-  // Restore name
+  // Restore name and phone
   useEffect(() => {
     const savedName = localStorage.getItem("attendance_name");
     if (savedName) setName(savedName);
+    const savedPhone = localStorage.getItem("attendance_phone");
+    if (savedPhone) setPhone(savedPhone);
   }, []);
 
   // GPS check
@@ -237,6 +240,16 @@ export default function AttendanceForm() {
       return;
     }
 
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone) {
+      toast({ title: "Masukkan nomor telepon Anda", variant: "destructive" });
+      return;
+    }
+    if (!/^(\+62|08)\d{7,13}$/.test(trimmedPhone)) {
+      toast({ title: "Format nomor telepon tidak valid", description: "Gunakan format 08xx atau +62xx", variant: "destructive" });
+      return;
+    }
+
     const isTudung = activity.type === "tudung_sipulung";
 
     if (isTudung) {
@@ -268,6 +281,7 @@ export default function AttendanceForm() {
       participant_name: name.trim(),
       feedback: isTudung ? (finalInstansi ?? "-") : feedback.trim(),
       instansi: finalInstansi,
+      phone_number: trimmedPhone,
       device_fingerprint: deviceFp,
       latitude: coords?.lat ?? null,
       longitude: coords?.lng ?? null,
@@ -285,6 +299,7 @@ export default function AttendanceForm() {
     }
 
     localStorage.setItem("attendance_name", name.trim());
+    localStorage.setItem("attendance_phone", trimmedPhone);
     setSubmittedCookie(session.id);
     setSubmitted(true);
     setSubmitting(false);
@@ -385,7 +400,9 @@ export default function AttendanceForm() {
 
   const gpsReady = gpsStatus === "ok";
 
-  const isFormValid = gpsReady && !!name.trim() && (
+  const phoneValid = /^(\+62|08)\d{7,13}$/.test(phone.trim());
+
+  const isFormValid = gpsReady && !!name.trim() && phoneValid && (
     isTudung
       ? !!instansi && (instansi !== "Lainnya" || !!instansiLainnya.trim())
       : feedback.trim().length >= 10
@@ -447,6 +464,21 @@ export default function AttendanceForm() {
               maxLength={100}
               disabled={!gpsReady}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Nomor Telepon <span className="text-destructive">*</span></Label>
+            <Input
+              type="tel"
+              placeholder="Contoh: 08123456789"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              maxLength={20}
+              disabled={!gpsReady}
+            />
+            {phone.trim().length > 0 && !phoneValid && (
+              <p className="text-xs text-destructive">Format tidak valid. Gunakan 08xx atau +62xx</p>
+            )}
           </div>
 
           {isTudung ? (

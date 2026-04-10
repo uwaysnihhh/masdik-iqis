@@ -56,6 +56,7 @@ import {
   Trash2,
   BookOpen,
   ClipboardList,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -172,6 +173,7 @@ export default function Admin() {
   const [eventSpeaker, setEventSpeaker] = useState("");
   const [eventTopic, setEventTopic] = useState("");
   const [eventTotalSessions, setEventTotalSessions] = useState("");
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
   // View booking dialog
   const [viewBooking, setViewBooking] = useState<Booking | null>(null);
@@ -382,6 +384,33 @@ export default function Admin() {
     toast({ title: "Transaksi Dihapus" });
   };
 
+  const resetEventForm = () => {
+    setEventTitle("");
+    setEventDateObj(undefined);
+    setEventTime("");
+    setEventEndTime("");
+    setEventType("kajian");
+    setEventDescription("");
+    setEventSpeaker("");
+    setEventTopic("");
+    setEventTotalSessions("");
+    setEditingEventId(null);
+  };
+
+  const openEditDialog = (event: Event) => {
+    setEditingEventId(event.id);
+    setEventTitle(event.title);
+    setEventDateObj(new Date(event.event_date + "T00:00:00"));
+    setEventTime(event.event_time || "");
+    setEventEndTime(event.event_end_time || "");
+    setEventType(event.type);
+    setEventDescription(event.description || "");
+    setEventSpeaker(event.speaker_name || "");
+    setEventTopic(event.topic || "");
+    setEventTotalSessions(event.total_sessions?.toString() || "");
+    setEventDialogOpen(true);
+  };
+
   const handleAddEvent = async () => {
     if (!eventTitle || !eventDateObj || !eventDescription) {
       toast({ title: "Lengkapi semua field (Keterangan Kegiatan wajib diisi)", variant: "destructive" });
@@ -393,55 +422,71 @@ export default function Admin() {
       return;
     }
 
-
     if (eventType === "daurah" && (!eventTotalSessions || parseInt(eventTotalSessions) < 1)) {
       toast({ title: "Jumlah sesi minimal 1", variant: "destructive" });
       return;
     }
 
     const eventDateStr = format(eventDateObj, "yyyy-MM-dd");
+    const speakerTopicTypes = ["kajian", "daurah", "tudung_sipulung"];
 
-    const { data, error } = await supabase.from("activities").insert({
-      title: eventTitle,
-      event_date: eventDateStr,
-      event_time: eventTime || null,
-      event_end_time: eventEndTime || null,
-      type: eventType,
-      description: eventDescription || null,
-      created_by: user?.id,
-      speaker_name: (eventType === "kajian" || eventType === "daurah" || eventType === "tudung_sipulung") ? eventSpeaker || null : null,
-      topic: (eventType === "kajian" || eventType === "daurah" || eventType === "tudung_sipulung") ? eventTopic || null : null,
-      total_sessions: eventType === "daurah" ? parseInt(eventTotalSessions) || null : null,
-    }).select().single();
+    if (editingEventId) {
+      const { data, error } = await supabase
+        .from("activities")
+        .update({
+          title: eventTitle,
+          event_date: eventDateStr,
+          event_time: eventTime || null,
+          event_end_time: eventEndTime || null,
+          type: eventType,
+          description: eventDescription || null,
+          speaker_name: speakerTopicTypes.includes(eventType) ? eventSpeaker || null : null,
+          topic: speakerTopicTypes.includes(eventType) ? eventTopic || null : null,
+          total_sessions: eventType === "daurah" ? parseInt(eventTotalSessions) || null : null,
+        })
+        .eq("id", editingEventId)
+        .select()
+        .single();
 
-    if (error) {
-      toast({
-        title: "Gagal menambahkan kegiatan",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
+      if (error) {
+        toast({ title: "Gagal mengupdate kegiatan", description: error.message, variant: "destructive" });
+        return;
+      }
 
-    setEvents([data, ...events]);
-    setEventTitle("");
-    setEventDateObj(undefined);
-    setEventTime("");
-    setEventEndTime("");
-    setEventType("kajian");
-    setEventDescription("");
-    setEventSpeaker("");
-    setEventTopic("");
-    setEventTotalSessions("");
-    setEventDialogOpen(false);
-    toast({ title: "Kegiatan Ditambahkan" });
+      setEvents(events.map((e) => (e.id === editingEventId ? data : e)));
+      resetEventForm();
+      setEventDialogOpen(false);
+      toast({ title: "Kegiatan Diperbarui" });
+    } else {
+      const { data, error } = await supabase.from("activities").insert({
+        title: eventTitle,
+        event_date: eventDateStr,
+        event_time: eventTime || null,
+        event_end_time: eventEndTime || null,
+        type: eventType,
+        description: eventDescription || null,
+        created_by: user?.id,
+        speaker_name: speakerTopicTypes.includes(eventType) ? eventSpeaker || null : null,
+        topic: speakerTopicTypes.includes(eventType) ? eventTopic || null : null,
+        total_sessions: eventType === "daurah" ? parseInt(eventTotalSessions) || null : null,
+      }).select().single();
 
-    // Update booked slots
-    if (eventTime) {
-      setBookedSlots((prev) => [
-        ...prev,
-        { date: eventDateStr, startTime: eventTime, endTime: eventEndTime || null },
-      ]);
+      if (error) {
+        toast({ title: "Gagal menambahkan kegiatan", description: error.message, variant: "destructive" });
+        return;
+      }
+
+      setEvents([data, ...events]);
+      resetEventForm();
+      setEventDialogOpen(false);
+      toast({ title: "Kegiatan Ditambahkan" });
+
+      if (eventTime) {
+        setBookedSlots((prev) => [
+          ...prev,
+          { date: eventDateStr, startTime: eventTime, endTime: eventEndTime || null },
+        ]);
+      }
     }
   };
 
@@ -1135,7 +1180,7 @@ export default function Admin() {
                 <Card className="border-0 shadow-lg">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-base md:text-lg">Daftar Kegiatan</CardTitle>
-                    <Dialog open={eventDialogOpen} onOpenChange={setEventDialogOpen}>
+                    <Dialog open={eventDialogOpen} onOpenChange={(open) => { if (!open) { resetEventForm(); } setEventDialogOpen(open); }}>
                       <DialogTrigger asChild>
                         <Button size="sm" className="gap-1">
                           <Plus className="w-4 h-4" />
@@ -1144,7 +1189,7 @@ export default function Admin() {
                       </DialogTrigger>
                       <DialogContent className="max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
-                          <DialogTitle>Tambah Kegiatan</DialogTitle>
+                          <DialogTitle>{editingEventId ? "Edit Kegiatan" : "Tambah Kegiatan"}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                           <div className="space-y-2">
@@ -1370,6 +1415,16 @@ export default function Admin() {
                                         <ClipboardList className="w-4 h-4" />
                                       </Button>
                                     )}
+                                    {/* Edit Button */}
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="px-2 text-blue-600 hover:text-blue-700"
+                                      onClick={() => openEditDialog(event)}
+                                      title="Edit Kegiatan"
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                    </Button>
                                     {/* View Detail Button */}
                                     <Dialog open={viewEvent?.id === event.id} onOpenChange={(open) => setViewEvent(open ? event : null)}>
                                       <DialogTrigger asChild>

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, QrCode, Download, RefreshCw, Users, UserCheck, UserX,
-  TrendingUp, Loader2, Trash2, BarChart3, Search, Filter,
+  TrendingUp, Loader2, Trash2, BarChart3, Search, Filter, ExternalLink,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -59,6 +59,7 @@ interface AttendanceRecord {
   participant_name: string;
   feedback: string;
   instansi: string | null;
+  phone_number: string | null;
   device_fingerprint: string;
   latitude: number | null;
   longitude: number | null;
@@ -236,13 +237,14 @@ export default function AttendanceManagement() {
 
     const isTudung = activity?.type === "tudung_sipulung";
     const headers = isTudung
-      ? ["Nama", "Instansi", "Waktu", "Latitude", "Longitude"]
-      : ["Nama", "Sesi", "Feedback", "Waktu", "Latitude", "Longitude"];
+      ? ["Nama", "No. Telepon", "Instansi", "Waktu", "Latitude", "Longitude"]
+      : ["Nama", "No. Telepon", "Sesi", "Feedback", "Waktu", "Latitude", "Longitude"];
     const rows = records.map((r) => {
       const session = sessions.find((s) => s.id === r.session_id);
       if (isTudung) {
         return [
-          r.participant_name,
+          `"${r.participant_name}"`,
+          r.phone_number || "-",
           r.instansi || "-",
           format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: idLocale }),
           r.latitude?.toString() || "-",
@@ -250,7 +252,8 @@ export default function AttendanceManagement() {
         ].join(",");
       }
       return [
-        r.participant_name,
+        `"${r.participant_name}"`,
+        r.phone_number || "-",
         session?.session_label || "-",
         `"${r.feedback.replace(/"/g, '""')}"`,
         format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: idLocale }),
@@ -339,6 +342,15 @@ export default function AttendanceManagement() {
           <Button size="sm" variant="outline" onClick={handleExportCSV}>
             <Download className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Export CSV</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-primary border-primary"
+            onClick={() => window.open(`/dashboard/${activityId}`, "_blank")}
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Dashboard Publik</span>
           </Button>
         </div>
       </header>
@@ -687,12 +699,13 @@ export default function AttendanceManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nama</TableHead>
+                  <TableHead className="hidden md:table-cell">No. Telepon</TableHead>
                   {activity?.type === "tudung_sipulung" ? (
                     <TableHead>Instansi</TableHead>
                   ) : (
                     <>
                       <TableHead>Sesi</TableHead>
-                      <TableHead className="hidden md:table-cell">Feedback</TableHead>
+                      <TableHead className="hidden lg:table-cell">Feedback</TableHead>
                     </>
                   )}
                   <TableHead>Waktu</TableHead>
@@ -702,7 +715,7 @@ export default function AttendanceManagement() {
               <TableBody>
                 {filteredRecords.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={activity?.type === "tudung_sipulung" ? 4 : 5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={activity?.type === "tudung_sipulung" ? 5 : 6} className="text-center py-8 text-muted-foreground">
                       {records.length === 0
                         ? "Belum ada peserta yang absen"
                         : "Tidak ada peserta yang cocok dengan filter"}
@@ -714,6 +727,7 @@ export default function AttendanceManagement() {
                     return (
                       <TableRow key={record.id}>
                         <TableCell className="font-medium text-sm">{record.participant_name}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{record.phone_number || "-"}</TableCell>
                         {activity?.type === "tudung_sipulung" ? (
                           <TableCell className="text-sm">{record.instansi || "-"}</TableCell>
                         ) : (
@@ -723,7 +737,7 @@ export default function AttendanceManagement() {
                                 {session?.session_label || "-"}
                               </Badge>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell text-sm max-w-[200px] truncate">
+                            <TableCell className="hidden lg:table-cell text-sm max-w-[200px] truncate">
                               {record.feedback}
                             </TableCell>
                           </>

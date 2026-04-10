@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,14 +17,15 @@ import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import AttendanceManagement from "./pages/AttendanceManagement";
 import AttendanceForm from "./pages/AttendanceForm";
+import AttendanceDashboard from "./pages/AttendanceDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 // Protected Route wrapper that redirects to login if not authenticated or not admin
-function AdminRoute() {
+function AdminRoute({ children }: { children?: React.ReactNode }) {
   const { user, isLoading, isAdmin } = useAuth();
-  
+
   // Show loading while checking auth status
   if (isLoading) {
     return (
@@ -35,18 +37,18 @@ function AdminRoute() {
       </div>
     );
   }
-  
+
   // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/admin-login" replace />;
   }
-  
+
   // Redirect to login if authenticated but not admin
   if (!isAdmin) {
     return <Navigate to="/admin-login" replace />;
   }
-  
-  return <Admin />;
+
+  return children ? <>{children}</> : <Admin />;
 }
 
 const App = () => (
@@ -67,9 +69,10 @@ const App = () => (
             
             
             <Route path="/admin" element={<AdminRoute />} />
-            <Route path="/admin/absensi/:activityId" element={<AttendanceManagement />} />
+            <Route path="/admin/absensi/:activityId" element={<AdminRoute><AttendanceManagement /></AdminRoute>} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/absen/:token" element={<AttendanceForm />} />
+            <Route path="/dashboard/:activityId" element={<AttendanceDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
