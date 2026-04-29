@@ -342,7 +342,7 @@ export default function AttendanceManagement() {
           </div>
           <Button size="sm" variant="outline" onClick={handleExportCSV}>
             <Download className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span className="hidden sm:inline">Export</span>
           </Button>
           <Button
             size="sm"
